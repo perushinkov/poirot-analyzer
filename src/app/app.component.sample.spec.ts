@@ -7,8 +7,27 @@ describe('AppComponent compilation test', () => {
   let componentUnderTest: AppComponent;
   let fixture: ComponentFixture<AppComponent>;
 
-  // describe('Class test', () => {
-  // });
+  describe('Class test', () => {
+    Given(() => {
+      TestBed.configureTestingModule({
+        providers: [
+          AppComponent
+        ]
+      });
+      componentUnderTest = TestBed.get(AppComponent);
+    });
+
+    describe('INIT', () => {
+      When(() => {
+        actualValue = componentUnderTest.title;
+      });
+
+      Then(() => {
+        expectedValue = 'poirot-analyzer';
+        expect(actualValue).toEqual(expectedValue);
+      });
+    });
+  });
 
   describe('With fixture', () => {
     Given(async(() => {
@@ -30,17 +49,6 @@ describe('AppComponent compilation test', () => {
     describe('should create the app', () => {
       Then(() => {
         expect(componentUnderTest).toBeTruthy();
-      });
-    });
-
-    describe('should have as title "poirot-analyzer"', () => {
-      When(() => {
-        actualValue = componentUnderTest.title;
-      });
-
-      Then(() => {
-        expectedValue = 'poirot-analyzer';
-        expect(actualValue).toEqual(expectedValue);
       });
     });
 
