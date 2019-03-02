@@ -2,34 +2,59 @@ import { TestBed, async } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppComponent } from './app.component';
 
-describe('AppComponent', () => {
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule
-      ],
-      declarations: [
-        AppComponent
-      ],
-    }).compileComponents();
-  }));
+describe('AppComponent compilation test', () => {
+  let actualValue, expectedValue;
+  let componentUnderTest: AppComponent;
+  let fixture;
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.debugElement.componentInstance;
-    expect(app).toBeTruthy();
+  describe('Class test', () => {
+  // TODO:
   });
 
-  it(`should have as title 'poirot-analyzer'`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.debugElement.componentInstance;
-    expect(app.title).toEqual('poirot-analyzer');
-  });
+  describe('With fixture', () => {
+    Given(async(() => {
+      TestBed.configureTestingModule({
+        imports: [
+          RouterTestingModule
+        ],
+        declarations: [
+          AppComponent
+        ],
+      }).compileComponents();
+    }));
 
-  it('should render title in a h1 tag', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    const compiled = fixture.debugElement.nativeElement;
-    expect(compiled.querySelector('h1').textContent).toContain('Welcome to poirot-analyzer!');
+    Given(() => {
+      fixture = TestBed.createComponent(AppComponent);
+      componentUnderTest = fixture.debugElement.componentInstance;
+    });
+
+    describe('should create the app', () => {
+      Then(() => {
+        expect(componentUnderTest).toBeTruthy();
+      });
+    });
+
+    describe('should have as title "poirot-analyzer"', () => {
+      When(() => {
+        actualValue = componentUnderTest.title;
+      });
+
+      Then(() => {
+        expectedValue = 'poirot-analyzer';
+        expect(actualValue).toEqual(expectedValue);
+      });
+    });
+
+    describe('should render title in a h1 tag', () => {
+      When(() => {
+        fixture.detectChanges();
+        actualValue = fixture.debugElement.nativeElement.querySelector('h1').textContent;
+      });
+
+      Then(() => {
+        expectedValue = 'Welcome to poirot-analyzer';
+        expect(actualValue).toContain(expectedValue);
+      });
+    });
   });
 });
