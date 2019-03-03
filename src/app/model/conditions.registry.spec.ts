@@ -1,4 +1,4 @@
-import {ConditionsRegistry} from './registry';
+import {ConditionsRegistry} from './conditions.registry';
 
 describe('ConditionsRegistry', () => {
   // let actualValue, expectedValue;
@@ -91,7 +91,7 @@ describe('ConditionsRegistry', () => {
         expect(componentUnderTest.size()).toEqual(1);
       });
       Then('shallow copy should not include it', () => {
-        expect(componentUnderTest.getShallowCopy()).toEqual({id: '2'});
+        expect(componentUnderTest.getShallowCopy()).toEqual({'2': {id: '2'}});
       });
     });
   });
