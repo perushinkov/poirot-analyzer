@@ -1,7 +1,7 @@
 import {IdGenerator} from './id.generator';
 
 describe('IdGenerator test', () => {
-  let actualValue;
+  let actualValue, expectedValue;
   let componentUnderTest: IdGenerator;
   Given(() => {
     componentUnderTest = new IdGenerator();
@@ -27,6 +27,18 @@ describe('IdGenerator test', () => {
       Then(() => {
         expect(actualValue[0]).not.toEqual(actualValue[1]);
       });
+    });
+  });
+
+  describe('METHOD: reset', () => {
+    When(() => {
+      expectedValue = [componentUnderTest.nextId(), componentUnderTest.nextId()];
+      componentUnderTest.reset();
+      actualValue = [componentUnderTest.nextId(), componentUnderTest.nextId()];
+    });
+
+    Then(() => {
+      expect(actualValue).toEqual(expectedValue);
     });
   });
 });

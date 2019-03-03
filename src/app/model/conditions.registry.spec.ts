@@ -3,24 +3,22 @@ import {ConditionsRegistry} from './conditions.registry';
 describe('ConditionsRegistry', () => {
   // let actualValue, expectedValue;
   let componentUnderTest: ConditionsRegistry;
-  let testEntry, badIds;
-
+  let badIds, testEntry1, testEntry2;
   Given(() => {
     componentUnderTest = new ConditionsRegistry();
+    testEntry1 = {id: '1', name: 'dummy', type: 'dummy', property: 'dummy', value: 'dummy'};
+    testEntry2 = {id: '2', name: 'dummy', type: 'dummy', property: 'dummy', value: 'dummy'};
   });
 
   describe('METHOD: register', () => {
-    Given(() => {
-      testEntry = {id: '2'};
-    });
-
     describe('Expect registering a value with bad id to fail', () => {
       Given(() => {
         badIds = [null, undefined, {}, [], 123, NaN];
       });
       When(() => {
         badIds.forEach(badId => {
-          componentUnderTest.register({id: badId});
+          testEntry1.id = badId;
+          componentUnderTest.register(testEntry1);
         });
       });
       Then(() => {
@@ -31,17 +29,17 @@ describe('ConditionsRegistry', () => {
 
     describe('Expect registered value should be fetchable', () => {
       When(() => {
-        componentUnderTest.register(testEntry);
+        componentUnderTest.register(testEntry1);
       });
       Then(() => {
-        expect(componentUnderTest.fetch(testEntry.id)).toBe(testEntry);
+        expect(componentUnderTest.fetch(testEntry1.id)).toBe(testEntry1);
       });
     });
 
     describe('Same id should only be registrable once', () => {
       When(() => {
-        componentUnderTest.register(testEntry);
-        componentUnderTest.register(testEntry);
+        componentUnderTest.register(testEntry1);
+        componentUnderTest.register(testEntry1);
       });
       Then(() => {
         expect(componentUnderTest.size()).toEqual(1);
@@ -51,8 +49,8 @@ describe('ConditionsRegistry', () => {
 
   describe('METHOD: clear', () => {
     Given(() => {
-      componentUnderTest.register({id: '1'});
-      componentUnderTest.register({id: '2'});
+      componentUnderTest.register(testEntry1);
+      componentUnderTest.register(testEntry2);
     });
     When(() => {
       componentUnderTest.clear();
@@ -70,11 +68,6 @@ describe('ConditionsRegistry', () => {
   });
 
   describe('METHOD: remove', () => {
-    let testEntry1, testEntry2;
-    Given(() => {
-      testEntry1 = {id: '1'};
-      testEntry2 = {id: '2'};
-    });
     When(() => {
       componentUnderTest.register(testEntry1);
       componentUnderTest.register(testEntry2);
@@ -91,7 +84,7 @@ describe('ConditionsRegistry', () => {
         expect(componentUnderTest.size()).toEqual(1);
       });
       Then('shallow copy should not include it', () => {
-        expect(componentUnderTest.getShallowCopy()).toEqual({'2': {id: '2'}});
+        expect(componentUnderTest.getShallowCopy()).toEqual({'2': testEntry2});
       });
     });
   });

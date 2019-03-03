@@ -2,16 +2,14 @@
  * Upon creation conditions will be registered here. This is sort of the condition's repository.
  * Used to be a singleton service. Reworking that.
  */
+import {ConditionDef} from './condition.defs';
 
-export interface EntryWithId {
-  id: any;
-}
 export class ConditionsRegistry {
   constructor() { }
 
   private registry = {};
 
-  register(def: EntryWithId) {
+  register(def: ConditionDef) {
     if (typeof def.id === 'string') {
       this.registry[def.id] = def;
     }

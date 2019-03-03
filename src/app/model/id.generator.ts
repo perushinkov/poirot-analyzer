@@ -4,7 +4,11 @@
 export class IdGenerator {
   private _currentValue = 1;
 
-  nextId(): number {
-    return this._currentValue++;
+  nextId(): string {
+    return JSON.stringify(this._currentValue++);
+  }
+
+  reset() {
+    this._currentValue = 1;
   }
 }
