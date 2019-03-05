@@ -7,7 +7,7 @@ import {ConditionDef} from './condition.defs';
 export class ConditionsRegistry {
   constructor() { }
 
-  private registry = {};
+  private registry: {[id: string]: ConditionDef} = {};
 
   register(def: ConditionDef) {
     if (typeof def.id === 'string') {
@@ -15,7 +15,7 @@ export class ConditionsRegistry {
     }
   }
 
-  fetch(id) {
+  fetch(id): ConditionDef {
     return this.registry[id] || null;
   }
 

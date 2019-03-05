@@ -1,10 +1,10 @@
-export interface SingleDef {id;  name;  type;  property;  value; }
+export interface SingleDef {id: string;  name: string;  type: 'between'|'identity'|'comparison';  property;  value; }
 
-export interface MultiDef {id; name; type; property; values; }
+export interface MultiDef {id: string; name: string; type: 'values'|'enums'|'ranges'; property; values: any[]; }
 
-export interface MonoCompositeDef {id; name; type; value; }
+export interface MonoCompositeDef {id: string; name: string; type: 'not'|'bool'|'reference'; value; }
 
-export interface MultiCompositeDef { id; name; type; values; }
+export interface MultiCompositeDef {id: string; name: string; type: 'and'|'or'; values: any[]; }
 
 export type ConditionDef = SingleDef | MultiDef | MonoCompositeDef | MultiCompositeDef;
 

@@ -14,7 +14,7 @@ export class ConditionsBuilder {
   }
 
   buildValues(property: string, values: any[], name: string): MultiDef {
-    const def = {
+    const def: MultiDef = {
       id: this._idGenerator.nextId(),
       name: name || '',
       type: 'values',
@@ -26,7 +26,7 @@ export class ConditionsBuilder {
   }
 
   buildEnums(property: string, values: any[][], name: string): MultiDef {
-    const def = {
+    const def: MultiDef = {
       id: this._idGenerator.nextId(),
       name: name || '',
       type: 'enums',
@@ -38,7 +38,7 @@ export class ConditionsBuilder {
   }
 
   buildRanges(property: string, values: [any, any], name: string): MultiDef {
-    const def = {
+    const def: MultiDef = {
       id: this._idGenerator.nextId(),
       name: name || '',
       type: 'ranges',
@@ -50,7 +50,7 @@ export class ConditionsBuilder {
   }
 
   buildBetween(property: string, value: { range: [any, any], included: [0 | 1, 0 | 1] }, name: string): SingleDef {
-    const def = {
+    const def: SingleDef = {
       id: this._idGenerator.nextId(),
       name: name || '',
       type: 'between',
@@ -62,7 +62,7 @@ export class ConditionsBuilder {
   }
 
   buildIdentity(property: string, value: any, name: string): SingleDef {
-    const def = {
+    const def: SingleDef = {
       id: this._idGenerator.nextId(),
       name: name || '',
       type: 'identity',
@@ -74,7 +74,7 @@ export class ConditionsBuilder {
   }
 
   buildComparison(property: string, value: { operator: '>' | '<' | '>=' | '<=', value: any }, name: string): SingleDef {
-    const def = {
+    const def: SingleDef = {
       id: this._idGenerator.nextId(),
       name: name || '',
       type: 'comparison',
@@ -86,7 +86,7 @@ export class ConditionsBuilder {
   }
 
   buildNot(value: string, name: string): MonoCompositeDef {
-    const def = {
+    const def: MonoCompositeDef = {
       id: this._idGenerator.nextId(),
       name: name || 'Not [' + value + ']',
       type: 'not',
@@ -97,7 +97,7 @@ export class ConditionsBuilder {
   }
 
   buildAnd(values: string[], name: string): MultiCompositeDef {
-    const def = {
+    const def: MultiCompositeDef = {
       id: this._idGenerator.nextId(),
       name: name,
       type: 'and',
@@ -108,7 +108,7 @@ export class ConditionsBuilder {
   }
 
   buildOr(values: string[], name: string): MultiCompositeDef {
-    const def = {
+    const def: MultiCompositeDef = {
       id: this._idGenerator.nextId(),
       name: name,
       type: 'or',
@@ -119,7 +119,7 @@ export class ConditionsBuilder {
   }
 
   buildBool(value: string, name: string): MonoCompositeDef {
-    const def = {
+    const def: MonoCompositeDef = {
       id: this._idGenerator.nextId(),
       name: name,
       type: 'bool',
@@ -130,7 +130,7 @@ export class ConditionsBuilder {
   }
 
   buildReference(value: string): MonoCompositeDef {
-    const def = {
+    const def: MonoCompositeDef = {
       id: this._idGenerator.nextId(),
       name: value,
       type: 'reference',
