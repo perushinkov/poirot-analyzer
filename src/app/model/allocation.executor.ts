@@ -214,6 +214,7 @@ export class AllocationExecutor {
         if (kidsWrapper != null) {
           // The unclassified among children remain as classified at current level
           classified = kidsWrapper._unclassified;
+          kidsWrapper._unclassified = [];
           kids = kidsWrapper.children;
         }
       }
@@ -281,6 +282,7 @@ export class AllocationExecutor {
         if (kidsWrapper != null) {
           // The unclassified among children remain as classified at current level
           classified = kidsWrapper._unclassified;
+          kidsWrapper._unclassified = [];
           kids = kidsWrapper.children;
         }
       }
@@ -309,6 +311,7 @@ export class AllocationExecutor {
         }
 
         toBeClassified = tempChild._unclassified;
+        tempChild._unclassified = [];
 
         if (toBeClassified.length === 0) {
           break; // All has been classified, no need to go through remaining allocs

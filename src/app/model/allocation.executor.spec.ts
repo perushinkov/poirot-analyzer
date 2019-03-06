@@ -12,6 +12,7 @@ describe('AllocationExecutor', () => {
   let conditions: any;
   let actualAllocationOutput: any/*AllocationOutput*/;
   let expectedAllocationOutput: any/*AllocationOutput*/;
+
   Given(() => {
     sampleDataSet = {
       name: 'Employees',
@@ -23,7 +24,7 @@ describe('AllocationExecutor', () => {
         {name: 'Joe',     country: 'UK', salary: 170, reliability: 0.8},
         {name: 'Elena',   country: 'UK', salary: 230, reliability: 0.8},
         {name: 'Marta',   country: 'BG', salary: 140, reliability: 0.35},
-        {name: 'Diana',   country: 'BG', salary: 210, reliability: 0.46},
+        {name: 'Diana',   country: 'BG', salary: 210, reliability: 0.56},
         {name: 'John',    country: 'US', salary: 130, reliability: 0.15},
         {name: 'Stefan',  country: 'GR', salary: 190, reliability: 0.71}
       ]
@@ -31,19 +32,22 @@ describe('AllocationExecutor', () => {
     testRegistry = new ConditionsRegistry();
     const builder = new ConditionsBuilder(new IdGenerator(), testRegistry);
     conditions = {};
-    conditions.is_BG = builder.buildIdentity('country', 'BG').id;
+    conditions.is_BG = builder.buildIdentity('country', 'BG', 'is BG').id;
     conditions.is_US = builder.buildIdentity('country', 'US').id;
-    conditions.is_not_BG = builder.buildNot(conditions.is_BG);
-    conditions.is_betw_Joe_Marta = builder.buildBetween('name', {range: ['Joe', 'Marta'], included: [0, 1]});
-    conditions.is_gt_half = builder.buildComparison('reliability', {operator: '>', value: 0.5});
+    conditions.is_not_BG = builder.buildNot(conditions.is_BG, '').id;
+    conditions.is_betw_Joe_Marta = builder.buildBetween('name', {range: ['Joe', 'Marta'], included: [0, 1]}).id;
+    conditions.is_gt_half = builder.buildComparison('reliability', {operator: '>', value: 0.5}).id;
 
     componentUnderTest = new AllocationExecutor(testRegistry);
   });
 
+  When(() => {
+    actualAllocationOutput = componentUnderTest.interpret(testAllocation, sampleDataSet);
+  });
+
   describe('Undefined allocation definition', () => {
-    When(() => {
+    Given(() => {
       testAllocation = undefined;
-      actualAllocationOutput = componentUnderTest.interpret(testAllocation, sampleDataSet);
     });
     Then(() => {
       expectedAllocationOutput = {
@@ -57,9 +61,8 @@ describe('AllocationExecutor', () => {
   });
 
   describe('Empty allocation definition should classify all at root', () => {
-    When(() => {
+    Given(() => {
       testAllocation = {id: 'root', children: []};
-      actualAllocationOutput = componentUnderTest.interpret(testAllocation, sampleDataSet);
     });
     Then(() => {
       expectedAllocationOutput = {
@@ -73,7 +76,7 @@ describe('AllocationExecutor', () => {
   });
 
   describe('Allocation def with simple conditions at 1st level', () => {
-    When(() => {
+    Given(() => {
       testAllocation = {
         id: 'root',
         children: [
@@ -81,7 +84,6 @@ describe('AllocationExecutor', () => {
           {id: conditions.is_US, children: []}
         ]
       };
-      actualAllocationOutput = componentUnderTest.interpret(testAllocation, sampleDataSet);
     });
     Then(() => {
       expectedAllocationOutput = {
@@ -100,7 +102,7 @@ describe('AllocationExecutor', () => {
               sampleDataSet.positions[3]
             ],
             _unclassified: [],
-            chidren: [],
+            children: []
           },
           {
             name: 'country is US',
@@ -108,12 +110,67 @@ describe('AllocationExecutor', () => {
               sampleDataSet.positions[4]
             ],
             _unclassified: [],
-            chidren: [],
+            children: []
           }
         ]
       };
       expect(actualAllocationOutput).toEqual(expectedAllocationOutput);
-      // TODO: Fix _unclassified cleanup in allocation.executor
+    });
+  });
+
+  describe('Allocation def with nested conditions', () => {
+    Given(() => {
+      testAllocation = {
+        id: 'root',
+        children: [
+          {
+            id: conditions.is_not_BG,
+            children: [
+              {id: conditions.is_US, children: []}
+            ]
+          },
+          {id: conditions.is_gt_half, children: []}
+        ]
+      };
+    });
+    Then(() => {
+      expectedAllocationOutput = {
+        name: 'Wrapper',
+        _classified: [
+          sampleDataSet.positions[2]
+        ],
+        _unclassified: [],
+        children: [
+          {
+            name: 'Not [1]', // TODO: Better default naming for customs?
+            _classified: [
+              sampleDataSet.positions[0],
+              sampleDataSet.positions[1],
+              sampleDataSet.positions[5]
+            ],
+            _unclassified: [],
+            children: [
+              {
+                name: 'country is US',
+                _classified: [
+                  sampleDataSet.positions[4]
+                ],
+                _unclassified: [],
+                children: []
+              }
+            ]
+          },
+          {
+            name: 'reliability > 0.5',
+            _classified: [
+              sampleDataSet.positions[3]
+            ],
+            _unclassified: [],
+            children: []
+          }
+        ]
+      };
+      expect(actualAllocationOutput).toEqual(expectedAllocationOutput);
     });
   });
 });
