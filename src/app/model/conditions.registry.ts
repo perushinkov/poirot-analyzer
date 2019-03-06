@@ -2,7 +2,7 @@
  * Upon creation conditions will be registered here. This is sort of the condition's repository.
  * Used to be a singleton service. Reworking that.
  */
-import {ConditionDef} from './condition.defs';
+import {ConditionDef} from './defs';
 
 export class ConditionsRegistry {
   constructor() { }

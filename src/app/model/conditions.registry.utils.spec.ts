@@ -1,6 +1,6 @@
 import {ConditionsRegistryUtils as Utils} from './conditions.registry.utils';
 import {ConditionsRegistry} from './conditions.registry';
-import {MonoCompositeDef, MultiCompositeDef, SingleDef} from './condition.defs';
+import {MonoCompositeDef, MultiCompositeDef, SingleDef} from './defs';
 import {EXPECTED_TODO_VALUE} from '../../polyfills';
 
 describe('ConditionsRegistryUtils', () => {
@@ -123,6 +123,12 @@ describe('ConditionsRegistryUtils', () => {
   });
 
   describe('METHOD: getName', () => {
+    Then(() => {
+      expect('NOT DONE').toEqual(EXPECTED_TODO_VALUE);
+    });
+  });
+
+  describe('METHOD: searchByName', () => {
     Then(() => {
       expect('NOT DONE').toEqual(EXPECTED_TODO_VALUE);
     });

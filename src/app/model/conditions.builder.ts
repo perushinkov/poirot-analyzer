@@ -1,4 +1,4 @@
-import {MonoCompositeDef, MultiCompositeDef, MultiDef, SingleDef} from './condition.defs';
+import {MonoCompositeDef, MultiCompositeDef, MultiDef, SingleDef} from './defs';
 import {ConditionsRegistry} from './conditions.registry';
 import {IdGenerator} from './id.generator';
 
@@ -7,7 +7,8 @@ import {IdGenerator} from './id.generator';
  */
 
 export class ConditionsBuilder {
-  constructor(private _idGenerator: IdGenerator, private _registry: ConditionsRegistry) {}
+  constructor(private _idGenerator: IdGenerator,
+              private _registry: ConditionsRegistry) {}
 
   get registry(): ConditionsRegistry {
     return this._registry;
@@ -49,7 +50,7 @@ export class ConditionsBuilder {
     return def;
   }
 
-  buildBetween(property: string, value: { range: [any, any], included: [0 | 1, 0 | 1] }, name: string): SingleDef {
+  buildBetween(property: string, value: { range: [any, any], included: [0 | 1, 0 | 1] }, name?: string): SingleDef {
     const def: SingleDef = {
       id: this._idGenerator.nextId(),
       name: name || '',
@@ -61,7 +62,7 @@ export class ConditionsBuilder {
     return def;
   }
 
-  buildIdentity(property: string, value: any, name: string): SingleDef {
+  buildIdentity(property: string, value: any, name?: string): SingleDef {
     const def: SingleDef = {
       id: this._idGenerator.nextId(),
       name: name || '',
@@ -73,7 +74,7 @@ export class ConditionsBuilder {
     return def;
   }
 
-  buildComparison(property: string, value: { operator: '>' | '<' | '>=' | '<=', value: any }, name: string): SingleDef {
+  buildComparison(property: string, value: { operator: '>' | '<' | '>=' | '<=', value: any }, name?: string): SingleDef {
     const def: SingleDef = {
       id: this._idGenerator.nextId(),
       name: name || '',
@@ -85,7 +86,7 @@ export class ConditionsBuilder {
     return def;
   }
 
-  buildNot(value: string, name: string): MonoCompositeDef {
+  buildNot(value: string, name?: string): MonoCompositeDef {
     const def: MonoCompositeDef = {
       id: this._idGenerator.nextId(),
       name: name || 'Not [' + value + ']',
@@ -96,7 +97,7 @@ export class ConditionsBuilder {
     return def;
   }
 
-  buildAnd(values: string[], name: string): MultiCompositeDef {
+  buildAnd(values: string[], name?: string): MultiCompositeDef {
     const def: MultiCompositeDef = {
       id: this._idGenerator.nextId(),
       name: name,
@@ -107,7 +108,7 @@ export class ConditionsBuilder {
     return def;
   }
 
-  buildOr(values: string[], name: string): MultiCompositeDef {
+  buildOr(values: string[], name?: string): MultiCompositeDef {
     const def: MultiCompositeDef = {
       id: this._idGenerator.nextId(),
       name: name,
@@ -118,7 +119,7 @@ export class ConditionsBuilder {
     return def;
   }
 
-  buildBool(value: string, name: string): MonoCompositeDef {
+  buildBool(value: string, name?: string): MonoCompositeDef {
     const def: MonoCompositeDef = {
       id: this._idGenerator.nextId(),
       name: name,

@@ -2,7 +2,7 @@
  * A class responsible for generating --help infos for the different types of conditions
  */
 import {ConditionsRegistry} from '../conditions.registry';
-import {ConditionDef, ConditionTypes, MonoCompositeDef, MultiCompositeDef, MultiDef, SingleDef} from '../condition.defs';
+import {ConditionDef, ConditionTypes, MonoCompositeDef, MultiCompositeDef, MultiDef, SingleDef} from '../defs';
 
 // TODO: Test
 export class ConditionsHelpInfoUtils {
