@@ -37,10 +37,17 @@ export class ConditionsRegistryUtils {
     return this._getChildrenArray(registry, conditionId, followReferences, true);
   }
 
+  // TODO: TEST
   static containsWipNodes(registry: ConditionsRegistry, conditionId: string) {
     if (!conditionId) {
       return true;
     }
     return ConditionsRegistryUtils.getChildrenArray(registry, conditionId, false).includes(null);
+  }
+
+  // TODO: TEST
+  getName(registry: ConditionsRegistry, id: string) {
+    const def = registry.fetch(id);
+    return def ? def.name : '';
   }
 }

@@ -83,3 +83,6 @@ import 'zone.js/dist/zone';  // Included with Angular CLI.
 /***************************************************************************************************
  * APPLICATION IMPORTS
  */
+
+export const ignoreUnfinishedTests = true;
+export const EXPECTED_TODO_VALUE = ignoreUnfinishedTests ? 'NOT DONE' : 'DONE';

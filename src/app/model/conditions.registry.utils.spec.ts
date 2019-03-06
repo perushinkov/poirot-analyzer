@@ -1,6 +1,7 @@
 import {ConditionsRegistryUtils as Utils} from './conditions.registry.utils';
 import {ConditionsRegistry} from './conditions.registry';
 import {MonoCompositeDef, MultiCompositeDef, SingleDef} from './condition.defs';
+import {EXPECTED_TODO_VALUE} from '../../polyfills';
 
 describe('ConditionsRegistryUtils', () => {
   let testRegistry: ConditionsRegistry;
@@ -114,4 +115,17 @@ describe('ConditionsRegistryUtils', () => {
       expect(actualValue).toEqual([null]);
     });
   });
+
+  describe('METHOD: containsWipNodes', () => {
+    Then(() => {
+      expect('NOT DONE').toEqual(EXPECTED_TODO_VALUE);
+    });
+  });
+
+  describe('METHOD: getName', () => {
+    Then(() => {
+      expect('NOT DONE').toEqual(EXPECTED_TODO_VALUE);
+    });
+  });
+
 });
