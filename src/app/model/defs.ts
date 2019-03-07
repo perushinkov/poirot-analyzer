@@ -6,6 +6,8 @@ export interface MonoCompositeDef {id: string; name: string; type: 'not'|'bool'|
 
 export interface MultiCompositeDef {id: string; name: string; type: 'and'|'or'; values: any[]; }
 
+export type CompositeDef = MonoCompositeDef | MultiCompositeDef;
+
 export type ConditionDef = SingleDef | MultiDef | MonoCompositeDef | MultiCompositeDef;
 
 export const ConditionTypes = {

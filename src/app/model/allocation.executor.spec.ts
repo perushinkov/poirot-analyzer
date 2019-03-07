@@ -1,6 +1,6 @@
 import {AllocationExecutor} from './allocation.executor';
 import {ConditionsRegistry} from './conditions.registry';
-import {AllocationDefinition, DataSet, GrammarTypes as GT} from './defs';
+import {AllocationDefinition, AllocationOutput, DataSet, GrammarTypes as GT} from './defs';
 import {ConditionsBuilder} from './conditions.builder';
 import {IdGenerator} from './id.generator';
 
@@ -10,8 +10,8 @@ describe('AllocationExecutor', () => {
   let sampleDataSet: DataSet;
   let testAllocation: AllocationDefinition;
   let conditions: any;
-  let actualAllocationOutput: any/*AllocationOutput*/;
-  let expectedAllocationOutput: any/*AllocationOutput*/;
+  let actualAllocationOutput: AllocationOutput;
+  let expectedAllocationOutput: AllocationOutput;
 
   Given(() => {
     sampleDataSet = {
@@ -51,9 +51,9 @@ describe('AllocationExecutor', () => {
     });
     Then(() => {
       expectedAllocationOutput = {
-        name: 'Error',
-        _classified: [],
-        _unclassified: [],
+        folderName: 'Error',
+        classified: [],
+        unclassified: [],
         children: []
       };
       expect(actualAllocationOutput).toEqual(expectedAllocationOutput);
@@ -66,9 +66,9 @@ describe('AllocationExecutor', () => {
     });
     Then(() => {
       expectedAllocationOutput = {
-        name: 'Wrapper',
-        _classified: sampleDataSet.positions,
-        _unclassified: [],
+        folderName: 'Wrapper',
+        classified: sampleDataSet.positions,
+        unclassified: [],
         children: []
       };
       expect(actualAllocationOutput).toEqual(expectedAllocationOutput);
@@ -87,29 +87,29 @@ describe('AllocationExecutor', () => {
     });
     Then(() => {
       expectedAllocationOutput = {
-        name: 'Wrapper',
-        _classified: [
+        folderName: 'Wrapper',
+        classified: [
           sampleDataSet.positions[0],
           sampleDataSet.positions[1],
           sampleDataSet.positions[5]
         ],
-        _unclassified: [],
+        unclassified: [],
         children: [
           {
-            name: 'country is BG',
-            _classified: [
+            folderName: 'country is BG',
+            classified: [
               sampleDataSet.positions[2],
               sampleDataSet.positions[3]
             ],
-            _unclassified: [],
+            unclassified: [],
             children: []
           },
           {
-            name: 'country is US',
-            _classified: [
+            folderName: 'country is US',
+            classified: [
               sampleDataSet.positions[4]
             ],
-            _unclassified: [],
+            unclassified: [],
             children: []
           }
         ]
@@ -135,37 +135,37 @@ describe('AllocationExecutor', () => {
     });
     Then(() => {
       expectedAllocationOutput = {
-        name: 'Wrapper',
-        _classified: [
+        folderName: 'Wrapper',
+        classified: [
           sampleDataSet.positions[2]
         ],
-        _unclassified: [],
+        unclassified: [],
         children: [
           {
-            name: 'Not [1]', // TODO: Better default naming for customs?
-            _classified: [
+            folderName: 'Not [1]', // TODO: Better default naming for customs?
+            classified: [
               sampleDataSet.positions[0],
               sampleDataSet.positions[1],
               sampleDataSet.positions[5]
             ],
-            _unclassified: [],
+            unclassified: [],
             children: [
               {
-                name: 'country is US',
-                _classified: [
+                folderName: 'country is US',
+                classified: [
                   sampleDataSet.positions[4]
                 ],
-                _unclassified: [],
+                unclassified: [],
                 children: []
               }
             ]
           },
           {
-            name: 'reliability > 0.5',
-            _classified: [
+            folderName: 'reliability > 0.5',
+            classified: [
               sampleDataSet.positions[3]
             ],
-            _unclassified: [],
+            unclassified: [],
             children: []
           }
         ]

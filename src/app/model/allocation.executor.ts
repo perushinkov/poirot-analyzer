@@ -1,6 +1,12 @@
 import {ConditionsRegistry} from './conditions.registry';
-import {AllocationDefinition, DataSet} from './defs';
-import {catchError} from 'rxjs/operators';
+import {
+  AllocationDefinition,
+  AllocationOutput, CompositeDef,
+  ConditionDef,
+  DataSet,
+  MultiDef,
+  SingleDef
+} from './defs';
 
 /**
  * The class can apply Allocation definitions to data sets,
@@ -10,6 +16,17 @@ import {catchError} from 'rxjs/operators';
  * with the slight exception of MultiDef conditions, which do get expanded upon conversion
  * to allocation output.
  */
+
+type MultiNamingFunction = (name: string, values: any[], index: number) => string;
+type SingleNamingFunction = (name: string, value: any) => string;
+type PositionObjVerifier = (position: any, property: string, value: any) => boolean;
+type GenericFilterFunction = (position: any) => boolean;
+
+
+type MultiAllocProcessor = (multiDef: MultiDef, json: AllocationDefinition, positions: any[]) => AllocationOutput;
+type SingleAllocProcessor = (singleDef: SingleDef, json: AllocationDefinition, positions: any[]) => AllocationOutput;
+type CompositeAllocProcessor = (compositeDef: CompositeDef, json: AllocationDefinition, positions: any[]) => AllocationOutput;
+
 export class AllocationExecutor {
   constructor(private registry: ConditionsRegistry) {}
 
@@ -106,34 +123,34 @@ export class AllocationExecutor {
 
   private allocComposite = this.makeAllocComposite((def) => this.compositeToMatcher(def));
 
-  private static makeAllocFolder(name: string, classified, unclassified, children) {
+  private static makeAllocFolder(name: string, classified, unclassified, children): AllocationOutput {
     return {
-      name: name,
-      _classified: classified,
-      _unclassified: unclassified,
+      folderName: name,
+      classified: classified,
+      unclassified: unclassified,
       children: children
     };
   }
 
-  private filterPositions(positions, filterFunction) {
-    const _classified = [];
-    const _unclassified = [];
+  private filterPositions(positions: any[], filterFunction: GenericFilterFunction) {
+    const classified = [];
+    const unclassified = [];
 
     positions.forEach(function (posObj) {
       if (filterFunction(posObj)) {
-        _classified.push(posObj);
+        classified.push(posObj);
       } else {
-        _unclassified.push(posObj);
+        unclassified.push(posObj);
       }
     });
 
     return {
-      _classified: _classified,
-      _unclassified: _unclassified
+      classified: classified,
+      unclassified: unclassified
     };
   }
 
-  private singleToMatcher(singleDef) {
+  private singleToMatcher(singleDef: SingleDef) {
     const verifier = this.verifiers.single[singleDef.type];
     return function(posObj) {
       return verifier(posObj, singleDef.property, singleDef.value);
@@ -143,21 +160,30 @@ export class AllocationExecutor {
   /**
    * Transform to logical tree with function leafs
    */
-  private toLogicalTree(def) {
-    if (def.property) {
-      return this.singleToMatcher(def); // Leaf function
-    }
-    return {
-      type: def.type,
-      values: def.values ?
-        def.values
+  private toLogicalTree(conditionDef: ConditionDef) {
+    switch (conditionDef.type) {
+      case 'between':
+      case 'comparison':
+      case 'identity':
+        return this.singleToMatcher(conditionDef); // Leaf function
+      case 'not':
+      case 'bool': // TODO: Test bool (KNOWN BUG)
+        return {
+          type: conditionDef.type,
+          value: this.toLogicalTree(this.registry.fetch(conditionDef.value))
+        };
+      case 'and':
+      case 'or':
+        const values = conditionDef.values
           .map((val) => this.registry.fetch(val))
-          .map((val) => this.toLogicalTree(val))
-        : undefined,
-      value: def.value ?
-        this.toLogicalTree(this.registry.fetch(def.value))
-        : undefined
-    };
+          .map((val) => this.toLogicalTree(val));
+        return {
+          type: conditionDef.type,
+          values: values
+        };
+      default:
+        return null;
+    }
   }
   private applyLogicalTree(posObj, logicalTree) {
     if (!logicalTree.type) {
@@ -186,47 +212,46 @@ export class AllocationExecutor {
   /** A function that given a composite def returns a matched
    * A suggested strategy is to evaluate logic branches on a need per basis
    */
-  private compositeToMatcher(compositeDef) {
+  private compositeToMatcher(compositeDef: CompositeDef) {
     const that = this;
     const logicalTree = that.toLogicalTree(compositeDef);
-    return function (posObj) {
-      return that.applyLogicalTree(posObj, logicalTree);
+    return function (positionObj: any) {
+      return that.applyLogicalTree(positionObj, logicalTree);
     };
   }
 
-  private makeAllocSingle(posObjVerifier, namingFunction) {
+  private makeAllocSingle(posObjVerifier: PositionObjVerifier, namingFunction: SingleNamingFunction): SingleAllocProcessor {
     const that = this;
-    return function (singleDef, json, positions) {
+    return function (singleDef: SingleDef, json: AllocationDefinition, positions: any[]): AllocationOutput {
       const property = singleDef.property;
-      const alias = singleDef.alias;
       const value = singleDef.value;
 
       const filtered = that.filterPositions(positions, function (posObj) {
         return posObjVerifier(posObj, property, value);
       });
 
-      let classified = filtered._classified;
+      let classified = filtered.classified;
 
-      const name = namingFunction(alias || property, value); // TODO: Used to be alias
+      const name = namingFunction(property, value);
       let kids = [];
       if (classified.length > 0) {
         const kidsWrapper = that.interpretDefJson(json.children, classified);
         if (kidsWrapper != null) {
           // The unclassified among children remain as classified at current level
-          classified = kidsWrapper._unclassified;
-          kidsWrapper._unclassified = [];
+          classified = kidsWrapper.unclassified;
+          kidsWrapper.unclassified = [];
           kids = kidsWrapper.children;
         }
       }
-      return AllocationExecutor.makeAllocFolder(name, classified, filtered._unclassified, kids);
+      return AllocationExecutor.makeAllocFolder(name, classified, filtered.unclassified, kids);
     };
   }
 
-  private makeAllocMulti(posObjVerifier, namingFunction) {
+
+  private makeAllocMulti(posObjVerifier: PositionObjVerifier, namingFunction: MultiNamingFunction): MultiAllocProcessor {
     const that = this;
-    return function (multiDef, json, positions) {
+    return function (multiDef: MultiDef, json: AllocationDefinition, positions: any[]): AllocationOutput {
       const property = multiDef.property;
-      const alias = multiDef.alias;
       const values = multiDef.values.slice(0);
 
       if (multiDef.type === 'ranges') {
@@ -240,19 +265,19 @@ export class AllocationExecutor {
         const filtered = that.filterPositions(positionsLeft, function (posObj) {
           return posObjVerifier(posObj, property, value);
         });
-        positionsLeft = filtered._unclassified;
+        positionsLeft = filtered.unclassified;
 
-        const classified = filtered._classified;
+        const classified = filtered.classified;
         if (classified.length === 0) {
           return;
         }
 
         const kids = that.interpretDefJson(json.children, classified);
-        const name = alias || property;
+        const name = property;
         if (kids != null) {
-          kids.name = namingFunction(name, values, index);
-          kids._classified = kids._unclassified;
-          kids._unclassified = [];
+          kids.folderName = namingFunction(name, values, index);
+          kids.classified = kids.unclassified;
+          kids.unclassified = [];
           allocFolders.push(kids);
           // NOTE: The unclassified of kids here is part of the classified
           // under the current groupAlloc member, therefore they do not
@@ -266,35 +291,34 @@ export class AllocationExecutor {
     };
   }
 
-  private makeAllocComposite(matcherMaker: (value: any) => (value: any) => boolean) {
+  private makeAllocComposite(matcherMaker: (value: CompositeDef) => GenericFilterFunction): CompositeAllocProcessor {
     const that = this;
-    return function (compositeDef, json, positions) {
-      const alias = compositeDef.alias || compositeDef.name;
+    return function (compositeDef: CompositeDef, json: AllocationDefinition, positions: any[]): AllocationOutput {
+      const name = compositeDef.name;
       const matcher = matcherMaker(compositeDef);
       const filtered = that.filterPositions(positions, matcher);
 
-      let classified = filtered._classified;
+      let classified = filtered.classified;
 
-      const name = alias;
       let kids = [];
       if (classified.length > 0) {
         const kidsWrapper = that.interpretDefJson(json.children, classified);
         if (kidsWrapper != null) {
           // The unclassified among children remain as classified at current level
-          classified = kidsWrapper._unclassified;
-          kidsWrapper._unclassified = [];
+          classified = kidsWrapper.unclassified;
+          kidsWrapper.unclassified = [];
           kids = kidsWrapper.children;
         }
       }
-      return AllocationExecutor.makeAllocFolder(name, classified, filtered._unclassified, kids);
+      return AllocationExecutor.makeAllocFolder(name, classified, filtered.unclassified, kids);
     };
   }
   /**
    * Takes alloc definition and list of positions and returns allocated data
    * TODO: @return {AllocFolder} allocatedData
    */
-  private interpretDefJson (json, positions) {
-    if (json.constructor === Array) {
+  private interpretDefJson (json: AllocationDefinition | AllocationDefinition[], positions): AllocationOutput {
+    if (json instanceof Array) {
       let allocIndex = 0;
       const children = [];
       let _endedUpUnclassified = [];
@@ -302,7 +326,7 @@ export class AllocationExecutor {
       while (allocIndex < json.length) {
         const tempChild = this.interpretDefJson(json[allocIndex], toBeClassified);
 
-        if (tempChild.name === 'Wrapper') {
+        if (tempChild.folderName === 'Wrapper') {
           tempChild.children.forEach(function (val) {
             children.push(val);
           });
@@ -310,8 +334,8 @@ export class AllocationExecutor {
           children.push(tempChild);
         }
 
-        toBeClassified = tempChild._unclassified;
-        tempChild._unclassified = [];
+        toBeClassified = tempChild.unclassified;
+        tempChild.unclassified = [];
 
         if (toBeClassified.length === 0) {
           break; // All has been classified, no need to go through remaining allocs
@@ -329,7 +353,7 @@ export class AllocationExecutor {
       if (json.id === 'root') {
         return this.interpretDefJson(json.children, positions);
       }
-      const def = this.registry.fetch(json.id);
+      const def: ConditionDef = this.registry.fetch(json.id);
       switch (def.type) {
         case 'values':
           return this.allocMulti.values(def, json, positions);
@@ -353,26 +377,22 @@ export class AllocationExecutor {
     }
   }
 
-  interpret (allocationDef: AllocationDefinition, dataSet: DataSet) {
+  interpret (allocationDef: AllocationDefinition, dataSet: DataSet): AllocationOutput {
     if (!allocationDef || allocationDef.id !== 'root') {
-      console.error('allocation definition does not have a proper root id.');
       return AllocationExecutor.makeAllocFolder('Error', [], [], []);
     }
     const result = this.interpretDefJson(allocationDef, dataSet.positions);
     if (!result) {
       return AllocationExecutor.makeAllocFolder('Wrapper', dataSet.positions, [], []);
     }
-    const newClassified = result._unclassified.slice();
-    result._unclassified = []; // TODO: Clean unclassified arrays in children once they're no longer needed
-    if (result.name === 'Wrapper') {
-      result._classified = newClassified;
+    const newClassified = result.unclassified.slice();
+    result.unclassified = []; // TODO: Clean unclassified arrays in children once they're no longer needed
+    if (result.folderName === 'Wrapper') {
+      result.classified = newClassified;
       return result;
     } else {
       return AllocationExecutor.makeAllocFolder('Wrapper', newClassified, [], [result]);
     }
   }
 
-  async interpretAsync(allocationDef: AllocationDefinition, dataSet: DataSet) {
-    return await this.interpret(allocationDef, dataSet);
-  }
 }
