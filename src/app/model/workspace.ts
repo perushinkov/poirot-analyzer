@@ -4,6 +4,10 @@ import {NamedCondition} from './named.condition';
 
 export interface Conditions { [s: string]: NamedCondition; }
 
+const SerializationVersion = {
+  MAJOR: 0,
+  MINOR: 0
+};
 /**
  * This class serves more to package data together.
  * Different Workspace operations are managed by other modules
@@ -15,7 +19,7 @@ export class Workspace {
     private _grammar: Grammar,
     private _registry: ConditionsRegistry,
     private _conditions: Conditions,
-    private _formulas: Array<any>
+    private _allocations: Array<any>
   ) {}
 
   get title(): string {
@@ -42,7 +46,37 @@ export class Workspace {
     return this._conditions;
   }
 
-  get formulas(): Array<any> {
-    return this._formulas;
+  get allocations(): Array<any> {
+    return this._allocations;
+  }
+
+  static toString(workspace: Workspace): string {
+    return JSON.stringify({
+      title: workspace._title,
+      positionSets: workspace._positionSets,
+      grammar: workspace._grammar,
+      registry: workspace._registry,
+      conditions: workspace._conditions,
+      allocations: workspace._allocations,
+      version: SerializationVersion
+    });
+  }
+
+  static fromString(workspaceString: string): Workspace {
+    const parsed = JSON.parse(workspaceString);
+    if (!parsed.version
+      || !parsed.positionSets
+      || !parsed.grammar
+      || !parsed.registry
+      || !parsed.conditions
+      || !parsed.allocations) {
+      return null;
+    }
+    if (parsed.version.MAJOR > SerializationVersion.MAJOR) {
+      console.error('Incompatible version found in saved workspace.');
+      // TODO: Make a general error/warning/info notification ui element
+      return null;
+    }
+    return new Workspace(parsed.title, parsed.positionSets, parsed.grammar, parsed.registry, parsed.conditions, parsed.allocations);
   }
 }

@@ -16,10 +16,6 @@ describe('AllocationExecutor', () => {
   Given(() => {
     sampleDataSet = {
       name: 'Employees',
-      grammar: {
-        fields: ['name', 'country', 'salary', 'reliability'],
-        types: [GT.t_string, GT.t_string, GT.t_number, GT.t_number]
-      },
       positions: [
         {name: 'Joe',     country: 'UK', salary: 170, reliability: 0.8},
         {name: 'Elena',   country: 'UK', salary: 230, reliability: 0.8},

@@ -7,16 +7,13 @@ export interface ReferenceMap { [condition_id: string]: true; }
  * - a smart-pointer-like reference-map-plus-count
  */
 export class NamedCondition {
-  constructor(private _name: string, private _conditionId: number) {}
-
-  private _references: ReferenceMap = {};
-  private _referenceCount = 0;
+  constructor(private _name: string, private _conditionId: string) {}
 
   get name(): string {
     return this._name;
   }
 
-  get conditionId(): number {
+  get conditionId(): string {
     return this._conditionId;
   }
 
@@ -24,8 +21,26 @@ export class NamedCondition {
     return {...this._references};
   }
 
-  addReference(conditionId: number) {
-    if (this._references.hasOwnProperty(conditionId + '')) {
+  private _references: ReferenceMap = {};
+  private _referenceCount = 0;
+
+  static fromString(serializedCondition: string): NamedCondition {
+    const parsed = JSON.parse(serializedCondition);
+    const namedCondition = new NamedCondition(parsed.name, parsed.conditionId);
+    parsed.references.forEach(reference => namedCondition.addReference(reference));
+    return namedCondition;
+  }
+
+  static toString(namedConditon: NamedCondition): string {
+    return JSON.stringify({
+      name: namedConditon._name,
+      conditionId: namedConditon._conditionId,
+      references: Object.keys(namedConditon._references)
+    });
+  }
+
+  addReference(conditionId: string) {
+    if (this._references.hasOwnProperty(conditionId)) {
       console.error('Condition ' + this._conditionId + ' (' + this._name + ') is already referenced by ' + conditionId);
     } else {
       this._referenceCount++;
@@ -33,8 +48,8 @@ export class NamedCondition {
     }
   }
 
-  removeReference(conditionId: number): boolean {
-    if (!this._references.hasOwnProperty(conditionId + '')) {
+  removeReference(conditionId: string): boolean {
+    if (!this._references.hasOwnProperty(conditionId)) {
       console.error('Condition ' + this._conditionId + ' (' + this._name + ') does not have reference to ' + conditionId);
       return false;
     } else {

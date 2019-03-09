@@ -40,7 +40,6 @@ export interface Grammar {
 
 export interface DataSet {
   name: string;
-  grammar: Grammar;
   positions: any[];
 }
 
