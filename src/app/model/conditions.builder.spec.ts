@@ -17,7 +17,7 @@ describe('ConditionsBuilder', () => {
   });
 
   // For now this method serves only as a documentation
-  describe('DOCUMENTATION', () => {
+  describe('Build methods work as expected', () => {
     When(() => {
       actualValues = {
         'single.identity': componentUnderTest.buildIdentity('nationality', 'BG', 'A fellow countryman of mine!'),
@@ -29,6 +29,7 @@ describe('ConditionsBuilder', () => {
         'composite.and': componentUnderTest.buildAnd(['id1', 'id2', 'id3'], 'The good, the bad and the ugly!'),
         'composite.or': componentUnderTest.buildOr(['id1', 'id2', 'id3'], 'The good, the bad or the ugly!'),
         'composite.not': componentUnderTest.buildNot('id1', 'Not the good'),
+        'composite.bool': componentUnderTest.buildBool(true),
         'internal.reference': componentUnderTest.buildReference('Name of condition')
       };
     });
@@ -51,12 +52,43 @@ describe('ConditionsBuilder', () => {
         'composite.and': {id: 'test_id', name: 'The good, the bad and the ugly!', type: 'and', values: ['id1', 'id2', 'id3']},
         'composite.or': {id: 'test_id', name: 'The good, the bad or the ugly!', type: 'or', values: ['id1', 'id2', 'id3']},
         'composite.not': {id: 'test_id', name: 'Not the good', type: 'not', value: 'id1'},
+        'composite.bool': {id: 'test_id', name: '', type: 'bool', value: true},
         'internal.reference': {id: 'test_id', name: 'Name of condition', type: 'reference', value: 'Name of condition'}
       };
 
       expect(actualValues).toEqual(expectedValues);
-      expect(mockIdGenerator.nextId.calls.count()).toEqual(10);
-      expect(mockRegistry.register.calls.count()).toEqual(10);
+      expect(mockIdGenerator.nextId.calls.count()).toEqual(11);
+      expect(mockRegistry.register.calls.count()).toEqual(11);
+    });
+  });
+
+  describe('Import condition', () => {
+    let expectedId, testCondition, expectedMigratedCondition;
+
+    Given(() => {
+      expectedId = 'the_expected_id';
+      mockIdGenerator.nextId.and.returnValue(expectedId);
+      testCondition = {
+        id: '1',
+        type: 'identity',
+        property: 'someField',
+        name: 'testCondition',
+        value: 'testValue'
+      };
+      expectedMigratedCondition = {...testCondition};
+      expectedMigratedCondition.id = expectedId;
+    });
+
+    When(() => {
+      actualValues = {};
+      actualValues.newCondtionId = componentUnderTest.importCondition(testCondition);
+
+    });
+    Then(() => {
+      expect(actualValues.newCondtionId).toEqual(expectedId);
+      expect(mockRegistry.register.calls.count()).toEqual(1);
+      expect(mockRegistry.register.calls.mostRecent().args).toEqual([expectedMigratedCondition]);
+      expect(mockIdGenerator.nextId.calls.count()).toEqual(1);
     });
   });
 });

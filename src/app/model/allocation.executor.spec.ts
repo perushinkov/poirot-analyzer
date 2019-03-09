@@ -37,7 +37,8 @@ describe('AllocationExecutor', () => {
     conditions.is_not_BG = builder.buildNot(conditions.is_BG, '').id;
     conditions.is_betw_Joe_Marta = builder.buildBetween('name', {range: ['Joe', 'Marta'], included: [0, 1]}).id;
     conditions.is_gt_half = builder.buildComparison('reliability', {operator: '>', value: 0.5}).id;
-
+    conditions.is_true = builder.buildBool(true).id;
+    conditions.is_not_true = builder.buildNot(conditions.is_true).id;
     componentUnderTest = new AllocationExecutor(testRegistry);
   });
 
@@ -142,7 +143,7 @@ describe('AllocationExecutor', () => {
         unclassified: [],
         children: [
           {
-            folderName: 'Not [1]', // TODO: Better default naming for customs?
+            folderName: '',
             classified: [
               sampleDataSet.positions[0],
               sampleDataSet.positions[1],
@@ -167,6 +168,45 @@ describe('AllocationExecutor', () => {
             ],
             unclassified: [],
             children: []
+          }
+        ]
+      };
+      expect(actualAllocationOutput).toEqual(expectedAllocationOutput);
+    });
+  });
+
+  describe('Allocation def to test out bool literals', () => {
+    Given(() => {
+      testAllocation = {
+        id: 'root',
+        children: [
+          {
+            id: conditions.is_true,
+            children: [
+              {id: conditions.is_not_true, children: []}
+            ]
+          }
+        ]
+      };
+    });
+    Then(() => {
+      expectedAllocationOutput = {
+        folderName: 'Wrapper',
+        classified: [],
+        unclassified: [],
+        children: [
+          {
+            folderName: '',
+            classified: sampleDataSet.positions,
+            unclassified: [],
+            children: [
+              {
+                folderName: '',
+                classified: [],
+                unclassified: [],
+                children: []
+              }
+            ]
           }
         ]
       };

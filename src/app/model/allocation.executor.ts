@@ -167,10 +167,14 @@ export class AllocationExecutor {
       case 'identity':
         return this.singleToMatcher(conditionDef); // Leaf function
       case 'not':
-      case 'bool': // TODO: Test bool (KNOWN BUG)
         return {
           type: conditionDef.type,
           value: this.toLogicalTree(this.registry.fetch(conditionDef.value))
+        };
+      case 'bool':
+        return {
+          type: conditionDef.type,
+          value: conditionDef.value
         };
       case 'and':
       case 'or':
@@ -206,6 +210,8 @@ export class AllocationExecutor {
         return false;
       case 'not':
         return !this.applyLogicalTree(posObj, logicalTree.value);
+      case 'bool':
+        return logicalTree.value;
       default:
     }
   }
@@ -315,7 +321,6 @@ export class AllocationExecutor {
   }
   /**
    * Takes alloc definition and list of positions and returns allocated data
-   * TODO: @return {AllocFolder} allocatedData
    */
   private interpretDefJson (json: AllocationDefinition | AllocationDefinition[], positions): AllocationOutput {
     if (json instanceof Array) {
@@ -372,6 +377,7 @@ export class AllocationExecutor {
         case 'and':
         case 'or':
         case 'not':
+        case 'bool':
           return this.allocComposite(def, json, positions);
       }
     }
@@ -386,7 +392,7 @@ export class AllocationExecutor {
       return AllocationExecutor.makeAllocFolder('Wrapper', dataSet.positions, [], []);
     }
     const newClassified = result.unclassified.slice();
-    result.unclassified = []; // TODO: Clean unclassified arrays in children once they're no longer needed
+    result.unclassified = [];
     if (result.folderName === 'Wrapper') {
       result.classified = newClassified;
       return result;

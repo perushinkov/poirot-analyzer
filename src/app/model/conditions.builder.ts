@@ -1,4 +1,4 @@
-import {MonoCompositeDef, MultiCompositeDef, MultiDef, SingleDef} from './defs';
+import {ConditionDef, MonoCompositeDef, MultiCompositeDef, MultiDef, SingleDef} from './defs';
 import {ConditionsRegistry} from './conditions.registry';
 import {IdGenerator} from './id.generator';
 
@@ -89,7 +89,7 @@ export class ConditionsBuilder {
   buildNot(value: string, name?: string): MonoCompositeDef {
     const def: MonoCompositeDef = {
       id: this._idGenerator.nextId(),
-      name: name || 'Not [' + value + ']',
+      name: name || '',
       type: 'not',
       value: value
     };
@@ -100,7 +100,7 @@ export class ConditionsBuilder {
   buildAnd(values: string[], name?: string): MultiCompositeDef {
     const def: MultiCompositeDef = {
       id: this._idGenerator.nextId(),
-      name: name,
+      name: name || '',
       type: 'and',
       values: values
     };
@@ -111,7 +111,7 @@ export class ConditionsBuilder {
   buildOr(values: string[], name?: string): MultiCompositeDef {
     const def: MultiCompositeDef = {
       id: this._idGenerator.nextId(),
-      name: name,
+      name: name || '',
       type: 'or',
       values: values
     };
@@ -119,10 +119,10 @@ export class ConditionsBuilder {
     return def;
   }
 
-  buildBool(value: string, name?: string): MonoCompositeDef {
+  buildBool(value: boolean, name?: string): MonoCompositeDef {
     const def: MonoCompositeDef = {
       id: this._idGenerator.nextId(),
-      name: name,
+      name: name || '',
       type: 'bool',
       value: value
     };
@@ -139,5 +139,12 @@ export class ConditionsBuilder {
     };
     this._registry.register(def);
     return def;
+  }
+
+  importCondition(condition: ConditionDef): string {
+    const conditionCopy = {...condition};
+    conditionCopy.id = this._idGenerator.nextId();
+    this._registry.register(conditionCopy);
+    return conditionCopy.id;
   }
 }
