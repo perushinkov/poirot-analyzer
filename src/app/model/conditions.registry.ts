@@ -9,6 +9,17 @@ export class ConditionsRegistry {
 
   private registry: {[id: string]: ConditionDef} = {};
 
+  static fromString(serializedRegistry: string): ConditionsRegistry {
+    const registry = new ConditionsRegistry();
+    const parsed = JSON.parse(serializedRegistry);
+    Object.keys(parsed).forEach(key => registry.register(parsed[key]));
+    return registry;
+  }
+
+  static toString(registry: ConditionsRegistry): string {
+    return JSON.stringify(registry.getShallowCopy());
+  }
+
   register(def: ConditionDef) {
     if (typeof def.id === 'string') {
       this.registry[def.id] = def;

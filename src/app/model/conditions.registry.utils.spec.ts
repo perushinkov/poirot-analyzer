@@ -30,90 +30,95 @@ describe('ConditionsRegistryUtils', () => {
     orDef2 = {id: '8', name: 'or2', type: 'or', values: ['7', '2']};
     unfinishedNot = {id: '9', name: '', type: 'not', value: null};
     unfinishedOr = {id: '10', name: 'unfinishedOr', type: 'or', values: ['9', '1', null]};
-
-    testRegistry = new ConditionsRegistry();
-    testRegistry.register(singleDef1);
-    testRegistry.register(singleDef2);
-    testRegistry.register(singleDefNamed);
-    testRegistry.register(boolDef);
-    testRegistry.register(notDef);
-    testRegistry.register(orDef);
-    testRegistry.register(notNamedDef);
-    testRegistry.register(orDef2);
-    testRegistry.register(unfinishedNot);
-    testRegistry.register(unfinishedOr);
   });
 
-  describe('unnamed single definition should be its own children tree', () => {
+  describe('getChildrenArray tests', () => {
     When(() => {
-      actualValue = Utils.getChildrenArray(testRegistry, '1', true);
+      testRegistry = new ConditionsRegistry();
+      testRegistry.register(singleDef1);
+      testRegistry.register(singleDef2);
+      testRegistry.register(singleDefNamed);
+      testRegistry.register(boolDef);
+      testRegistry.register(notDef);
+      testRegistry.register(orDef);
+      testRegistry.register(notNamedDef);
+      testRegistry.register(orDef2);
+      testRegistry.register(unfinishedNot);
+      testRegistry.register(unfinishedOr);
     });
-    Then(() => {
-      expect(actualValue).toEqual([singleDef1]);
-    });
-  });
 
-  describe('named single definition should be its own children tree', () => {
-    When(() => {
-      actualValue = Utils.getChildrenArray(testRegistry, '3', true);
+    describe('unnamed single definition should be its own children tree', () => {
+      When(() => {
+        actualValue = Utils.getChildrenArray(testRegistry, '1', true);
+      });
+      Then(() => {
+        expect(actualValue).toEqual([singleDef1]);
+      });
     });
-    Then(() => {
-      expect(actualValue).toEqual([singleDefNamed]);
-    });
-  });
 
-  describe('bool definition should be its own children tree', () => {
-    When(() => {
-      actualValue = Utils.getChildrenArray(testRegistry, '4', true);
+    describe('named single definition should be its own children tree', () => {
+      When(() => {
+        actualValue = Utils.getChildrenArray(testRegistry, '3', true);
+      });
+      Then(() => {
+        expect(actualValue).toEqual([singleDefNamed]);
+      });
     });
-    Then(() => {
-      expect(actualValue).toEqual([boolDef]);
-    });
-  });
 
-  describe('multi definition with no named nodes should be flattened via a DFS walk', () => {
-    When(() => {
-      actualValue = Utils.getChildrenArray(testRegistry, '6', true);
+    describe('bool definition should be its own children tree', () => {
+      When(() => {
+        actualValue = Utils.getChildrenArray(testRegistry, '4', true);
+      });
+      Then(() => {
+        expect(actualValue).toEqual([boolDef]);
+      });
     });
-    Then(() => {
-      expect(actualValue).toEqual([singleDef1, notDef, singleDef2, orDef]);
-    });
-  });
 
-  describe('multi definition with named nodes and followReferences(true) should be flattened via a DFS walk', () => {
-    When(() => {
-      actualValue = Utils.getChildrenArray(testRegistry, '8', true);
+    describe('multi definition with no named nodes should be flattened via a DFS walk', () => {
+      When(() => {
+        actualValue = Utils.getChildrenArray(testRegistry, '6', true);
+      });
+      Then(() => {
+        expect(actualValue).toEqual([singleDef1, notDef, singleDef2, orDef]);
+      });
     });
-    Then(() => {
-      expect(actualValue).toEqual([singleDef1, notNamedDef, singleDef2, orDef2]);
-    });
-  });
 
-  describe('multi def with named nodes should not expore named nodes', () => {
-    When(() => {
-      actualValue = Utils.getChildrenArray(testRegistry, '8', false);
+    describe('multi definition with named nodes and followReferences(true) should be flattened via a DFS walk', () => {
+      When(() => {
+        actualValue = Utils.getChildrenArray(testRegistry, '8', true);
+      });
+      Then(() => {
+        expect(actualValue).toEqual([singleDef1, notNamedDef, singleDef2, orDef2]);
+      });
     });
-    Then(() => {
-      expect(actualValue).toEqual([notNamedDef, singleDef2, orDef2]);
-    });
-  });
 
-  describe('Unfinished multi should contain nulls where definition is in progress', () => {
-    When(() => {
-      actualValue = Utils.getChildrenArray(testRegistry, '10', true);
+    describe('multi def with named nodes should not expore named nodes', () => {
+      When(() => {
+        actualValue = Utils.getChildrenArray(testRegistry, '8', false);
+      });
+      Then(() => {
+        expect(actualValue).toEqual([notNamedDef, singleDef2, orDef2]);
+      });
     });
-    Then(() => {
-      expect(actualValue).toEqual([null, unfinishedNot, singleDef1, null, unfinishedOr]);
-    });
-  });
 
-  describe('Bad id def should return a [null]', () => {
-    When(() => {
-      actualValue = Utils.getChildrenArray(testRegistry, 'bad id', true);
+    describe('Unfinished multi should contain nulls where definition is in progress', () => {
+      When(() => {
+        actualValue = Utils.getChildrenArray(testRegistry, '10', true);
+      });
+      Then(() => {
+        expect(actualValue).toEqual([null, unfinishedNot, singleDef1, null, unfinishedOr]);
+      });
     });
-    Then(() => {
-      expect(actualValue).toEqual([null]);
+
+    describe('Bad id def should return a [null]', () => {
+      When(() => {
+        actualValue = Utils.getChildrenArray(testRegistry, 'bad id', true);
+      });
+      Then(() => {
+        expect(actualValue).toEqual([null]);
+      });
     });
+
   });
 
   describe('METHOD: containsWipNodes', () => {
@@ -128,10 +133,32 @@ describe('ConditionsRegistryUtils', () => {
     });
   });
 
-  describe('METHOD: searchByName', () => {
+  describe('METHOD: test serialization', () => {
+    let serializedRegistry: string;
+    let reserializedRegistry: string;
+    let deserializedDefs;
+    Given(() => {
+      serializedRegistry = JSON.stringify({
+        '1': singleDef1,
+        '8': orDef2,
+        '10': unfinishedOr
+      });
+    });
+
+    When(() => {
+      testRegistry = ConditionsRegistry.fromString(serializedRegistry);
+      deserializedDefs = [
+        testRegistry.fetch('1'),
+        testRegistry.fetch('8'),
+        testRegistry.fetch('10')
+      ];
+      reserializedRegistry = ConditionsRegistry.toString(testRegistry);
+    });
+
+
     Then(() => {
-      expect('NOT DONE').toEqual(EXPECTED_TODO_VALUE);
+      expect(serializedRegistry).toEqual(reserializedRegistry);
+      expect(deserializedDefs).toEqual([singleDef1, orDef2, unfinishedOr]);
     });
   });
-
 });
