@@ -1,4 +1,4 @@
-import {Workspace} from './workspace';
+import {Workspace, WorkspaceSerializer} from './workspace';
 import {GrammarTypes as GT} from './defs';
 
 describe('Workspace', () => {
@@ -33,8 +33,8 @@ describe('Workspace', () => {
     });
   });
   When(() => {
-    deserializedWorkspace = Workspace.fromString(serializedWorkspace);
-    reserializedWorkspace = Workspace.toString(deserializedWorkspace);
+    deserializedWorkspace = new WorkspaceSerializer().fromStr(serializedWorkspace);
+    reserializedWorkspace = new WorkspaceSerializer().toStr(deserializedWorkspace);
   });
   Then(() => {
     expect(JSON.parse(serializedWorkspace)).toEqual(JSON.parse(reserializedWorkspace));

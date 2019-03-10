@@ -1,6 +1,7 @@
 import {DataSet, Grammar} from './defs';
 import {ConditionsRegistry} from './conditions.registry';
 import {NamedCondition} from './named.condition';
+import {Serializer} from './serializer.interface';
 
 export interface Conditions { [s: string]: NamedCondition; }
 
@@ -49,20 +50,22 @@ export class Workspace {
   get allocations(): Array<any> {
     return this._allocations;
   }
+}
 
-  static toString(workspace: Workspace): string {
+export class WorkspaceSerializer implements Serializer<Workspace> {
+  toStr(workspace: Workspace): string {
     return JSON.stringify({
-      title: workspace._title,
-      positionSets: workspace._positionSets,
-      grammar: workspace._grammar,
-      registry: workspace._registry,
-      conditions: workspace._conditions,
-      allocations: workspace._allocations,
+      title: workspace.title,
+      positionSets: workspace.positionSets,
+      grammar: workspace.grammar,
+      registry: workspace.registry,
+      conditions: workspace.conditions,
+      allocations: workspace.allocations,
       version: SerializationVersion
     });
   }
 
-  static fromString(workspaceString: string): Workspace {
+  fromStr(workspaceString: string): Workspace {
     const parsed = JSON.parse(workspaceString);
     if (!parsed.version
       || !parsed.positionSets
@@ -78,5 +81,13 @@ export class Workspace {
       return null;
     }
     return new Workspace(parsed.title, parsed.positionSets, parsed.grammar, parsed.registry, parsed.conditions, parsed.allocations);
+  }
+
+  getIdentifier(entity: Workspace): string {
+    return entity.title;
+  }
+
+  getPrefix(): string {
+    return 'workspace_';
   }
 }
