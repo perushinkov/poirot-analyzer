@@ -1,6 +1,8 @@
 # PoirotAnalyzer
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 7.2.2.
+A TDD rework of a project of mine. Still lacks much of UI in this TDD version. Have been working mostly on backend and their unit testing.
+A bit more about what the project is/will be about:
+A tool that lets you import table-like data, define conditions in a free-form manner, build a tree of these conditions, then allocate the data along these conditions (with decent performance).
 
 ## Development server
 
