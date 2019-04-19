@@ -2,7 +2,7 @@ import {Workspace, WorkspaceSerializer} from './workspace';
 import {GrammarTypes as GT} from './defs';
 
 describe('Workspace', () => {
-  let serializedWorkspace, deserializedWorkspace, reserializedWorkspace;
+  let serializedWorkspace;
   Given(() => {
     serializedWorkspace = JSON.stringify({
       title: ' someTitle',
@@ -32,11 +32,15 @@ describe('Workspace', () => {
       }
     });
   });
-  When(() => {
-    deserializedWorkspace = new WorkspaceSerializer().fromStr(serializedWorkspace);
-    reserializedWorkspace = new WorkspaceSerializer().toStr(deserializedWorkspace);
-  });
-  Then(() => {
-    expect(JSON.parse(serializedWorkspace)).toEqual(JSON.parse(reserializedWorkspace));
+
+  describe('Expect serialization and deserialization to work', () => {
+    let deserializedWorkspace, reserializedWorkspace;
+    When(() => {
+      deserializedWorkspace = new WorkspaceSerializer().fromStr(serializedWorkspace);
+      reserializedWorkspace = new WorkspaceSerializer().toStr(deserializedWorkspace);
+    });
+    Then(() => {
+      expect(JSON.parse(serializedWorkspace)).toEqual(JSON.parse(reserializedWorkspace));
+    });
   });
 });

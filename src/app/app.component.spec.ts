@@ -2,6 +2,13 @@ import {TestBed, async, ComponentFixture} from '@angular/core/testing';
 import {RouterTestingModule} from '@angular/router/testing';
 import {AppComponent} from './app.component';
 
+/**
+ * This component will include directly just one other component,
+ * since it's acting as the root of the application.
+ * If I decided to insert new root components, responsible for login,
+ * caching, etc, it will be much easier, since the existing components will just
+ * be moved down a bit. (and a new component will act as a child to this one)
+ */
 describe('AppComponent compilation test', () => {
   let actualValue, expectedValue;
   let componentUnderTest: AppComponent;

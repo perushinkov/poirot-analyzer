@@ -26,7 +26,7 @@ describe('AllocationExecutor', () => {
       ]
     };
     testRegistry = new ConditionsRegistry();
-    const builder = new ConditionsBuilder(new IdGenerator(), testRegistry);
+    const builder = ConditionsBuilder.createFromRegistry(testRegistry);
     conditions = {};
     conditions.is_BG = builder.buildIdentity('country', 'BG', 'is BG').id;
     conditions.is_US = builder.buildIdentity('country', 'US').id;

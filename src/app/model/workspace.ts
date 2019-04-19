@@ -1,9 +1,8 @@
 import {DataSet, Grammar} from './defs';
 import {ConditionsRegistry} from './conditions.registry';
-import {NamedCondition} from './named.condition';
+import {Conditions} from './named.condition';
 import {Serializer} from './serializer.interface';
 
-export interface Conditions { [s: string]: NamedCondition; }
 
 const SerializationVersion = {
   MAJOR: 0,

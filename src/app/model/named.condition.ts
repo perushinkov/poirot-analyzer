@@ -1,10 +1,17 @@
 export interface ReferenceMap { [condition_id: string]: true; }
+export interface Conditions { [s: string]: NamedCondition; }
 /**
  * NamedCondition extends a conditionDef, by knowing which other
  * conditions refer to the conditonDef by name.
  * - the name of the conditionDef
  * - the condition id of the conditionDef
  * - a smart-pointer-like reference-map-plus-count
+ *
+ * Note that:
+ * - Each NamedCondition instance holds the condition ids of the conditions
+ *   that refer to the named condition directly. (Thus they could be other
+ *   named or unnamed conditions). Complex AND's and OR's should enforce
+ *   no double-referencing of the same NamedCondition.
  */
 export class NamedCondition {
   constructor(private _name: string, private _conditionId: string) {}
@@ -41,7 +48,8 @@ export class NamedCondition {
 
   addReference(conditionId: string) {
     if (this._references.hasOwnProperty(conditionId)) {
-      console.error('Condition ' + this._conditionId + ' (' + this._name + ') is already referenced by ' + conditionId);
+      const errMsg = 'Condition ' + this._conditionId + ' (' + this._name + ') is already referenced by ' + conditionId;
+      throw new Error(errMsg);
     } else {
       this._referenceCount++;
       this._references[conditionId] = true;

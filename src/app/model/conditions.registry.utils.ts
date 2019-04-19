@@ -1,4 +1,5 @@
 import {ConditionsRegistry} from './conditions.registry';
+import {ConditionDef} from './defs';
 
 export class ConditionsRegistryUtils {
   private static _getChildrenArray(registry: ConditionsRegistry, conditionId: string, followReferences: boolean, isRoot: boolean) {
@@ -33,7 +34,7 @@ export class ConditionsRegistryUtils {
    * from one registry to another, because you're guaranteed that in the children array each condition only depends on conditions before it.
    * (Except for condition-references, which are references to previously created named conditions).
    */
-  static getChildrenArray(registry: ConditionsRegistry, conditionId: string, followReferences: boolean) {
+  static getChildrenArray(registry: ConditionsRegistry, conditionId: string, followReferences: boolean): ConditionDef[] {
     return this._getChildrenArray(registry, conditionId, followReferences, true);
   }
 
