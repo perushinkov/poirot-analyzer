@@ -1,13 +1,27 @@
 import {ConditionDef, MonoCompositeDef, MultiCompositeDef, MultiDef, SingleDef} from './defs';
 import {ConditionsRegistry} from './conditions.registry';
 import {IdGenerator} from './id.generator';
+import {Conditions} from './named.condition';
+import {ConditionsRegistryUtils} from './conditions.registry.utils';
 
 /**
  * Contains constructors for each type of condition that are accessible by their type tree.
  */
 
 export class ConditionsBuilder {
-  constructor(private _idGenerator: IdGenerator,
+  static createForTest(idGenerator: IdGenerator, registry: ConditionsRegistry): ConditionsBuilder {
+    return new ConditionsBuilder(idGenerator, registry);
+  }
+
+  static createFromRegistry(registry: ConditionsRegistry): ConditionsBuilder {
+    return new ConditionsBuilder(new IdGenerator(), registry);
+  }
+
+  static createEmpty(): ConditionsBuilder {
+    return new ConditionsBuilder(new IdGenerator(), new ConditionsRegistry());
+  }
+
+  private constructor(private _idGenerator: IdGenerator,
               private _registry: ConditionsRegistry) {}
 
   get registry(): ConditionsRegistry {
@@ -141,10 +155,27 @@ export class ConditionsBuilder {
     return def;
   }
 
+  /**
+   * Only responsibility of method is to copy the input condition
+   * into the registry with a new id
+   */
   importCondition(condition: ConditionDef): string {
     const conditionCopy = {...condition};
     conditionCopy.id = this._idGenerator.nextId();
     this._registry.register(conditionCopy);
     return conditionCopy.id;
+  }
+
+  /**
+   * Removes a condition recursively until a named condition is met.
+   * Returns a list with the names of the referenced named conditions
+   */
+  removeCondition(conditionId: string): string[] {
+    const deletedIds = ConditionsRegistryUtils
+      .getChildrenArray(this.registry, conditionId, false)
+      .filter(condition => condition && (condition.name === '' || condition.id === conditionId))
+      .map(condition => condition.id);
+    deletedIds.forEach(id => this.registry.remove(id));
+    return deletedIds;
   }
 }
