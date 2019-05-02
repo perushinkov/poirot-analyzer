@@ -2,10 +2,19 @@
  * This class should provide unique ids.
  */
 export class IdGenerator {
-  private _currentValue = 1;
+  static buildDefault(): IdGenerator {
+    return new IdGenerator(1);
+  }
+
+  static buildFromLastId(lastId: string): IdGenerator {
+    const parsedInt = (parseInt(lastId, 10) + 1) || 1;
+    return new IdGenerator(parsedInt);
+  }
+
+  private constructor(private _currentValue: number) {}
 
   nextId(): string {
-    return JSON.stringify(this._currentValue++);
+    return '' + this._currentValue++;
   }
 
   reset() {

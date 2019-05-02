@@ -4,7 +4,7 @@
 import {ConditionsRegistry} from '../conditions.registry';
 import {ConditionDef, ConditionTypes, MonoCompositeDef, MultiCompositeDef, MultiDef, SingleDef} from '../defs';
 
-// TODO: Test
+// TODO: When this piece of code comes round to being useful, please test!
 export class ConditionsHelpInfoUtils {
 
   private createGroupDescription (headerMsg, dataMatrix) {

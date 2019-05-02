@@ -1,7 +1,6 @@
 import {ConditionDef, MonoCompositeDef, MultiCompositeDef, MultiDef, SingleDef} from './defs';
 import {ConditionsRegistry} from './conditions.registry';
 import {IdGenerator} from './id.generator';
-import {Conditions} from './named.condition';
 import {ConditionsRegistryUtils} from './conditions.registry.utils';
 
 /**
@@ -14,11 +13,11 @@ export class ConditionsBuilder {
   }
 
   static createFromRegistry(registry: ConditionsRegistry): ConditionsBuilder {
-    return new ConditionsBuilder(new IdGenerator(), registry);
+    return new ConditionsBuilder(IdGenerator.buildFromLastId(registry.lastId), registry);
   }
 
   static createEmpty(): ConditionsBuilder {
-    return new ConditionsBuilder(new IdGenerator(), new ConditionsRegistry());
+    return new ConditionsBuilder(IdGenerator.buildDefault(), new ConditionsRegistry());
   }
 
   private constructor(private _idGenerator: IdGenerator,
@@ -168,14 +167,13 @@ export class ConditionsBuilder {
 
   /**
    * Removes a condition recursively until a named condition is met.
-   * Returns a list with the names of the referenced named conditions
+   * Returns a list with the deleted condition defs
    */
-  removeCondition(conditionId: string): string[] {
-    const deletedIds = ConditionsRegistryUtils
+  removeCondition(conditionId: string): ConditionDef[] {
+    const deletedDefs = ConditionsRegistryUtils
       .getChildrenArray(this.registry, conditionId, false)
-      .filter(condition => condition && (condition.name === '' || condition.id === conditionId))
-      .map(condition => condition.id);
-    deletedIds.forEach(id => this.registry.remove(id));
-    return deletedIds;
+      .filter(condition => condition && (condition.name === '' || condition.id === conditionId));
+    deletedDefs.forEach(def => this.registry.remove(def.id));
+    return deletedDefs;
   }
 }

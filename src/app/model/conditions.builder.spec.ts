@@ -102,7 +102,7 @@ describe('ConditionsBuilder', () => {
 
     When(() => {
       componentUnderTest = ConditionsBuilder.createFromRegistry(sampleRegistry);
-      deletedIds = componentUnderTest.removeCondition(removeId);
+      deletedIds = componentUnderTest.removeCondition(removeId).map(def => def.id);
     });
 
     describe('When condition is not present', () => {

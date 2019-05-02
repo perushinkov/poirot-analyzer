@@ -104,9 +104,8 @@ export class AllocationExecutor {
     ),
     ranges: this.makeAllocMulti(
       function (posObj, property, value) {
-        // NOTE! This relies on ranges values being sorted
-        // ascendingly with a MAX_NUM pushed at the end.
-        // TODO: Guarantee it is so!
+        // TODO: This relies on ranges values being sorted ascendingly with a MAX_NUM pushed at the end.
+        //       Guarantee it is so!
         return posObj[property] < value;
       },
       function name(property, values, index) {

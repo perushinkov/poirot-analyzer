@@ -3,11 +3,16 @@
  * Used to be a singleton service. Reworking that.
  */
 import {ConditionDef} from './defs';
-
+// TODO: make sure private variables are consistently named. i.e. _camelCase
 export class ConditionsRegistry {
   constructor() { }
 
-  private registry: {[id: string]: ConditionDef} = {};
+  private _registry: {[id: string]: ConditionDef} = {};
+  private _lastId: string;
+
+  get lastId(): string {
+    return this._lastId;
+  }
 
   static fromString(serializedRegistry: string): ConditionsRegistry {
     const registry = new ConditionsRegistry();
@@ -22,27 +27,28 @@ export class ConditionsRegistry {
 
   register(def: ConditionDef) {
     if (typeof def.id === 'string') {
-      this.registry[def.id] = def;
+      this._registry[def.id] = def;
+      this._lastId = def.id;
     }
   }
 
-  fetch(id): ConditionDef {
-    return this.registry[id] || null;
+  fetch(id: string): ConditionDef {
+    return this._registry[id] || null;
   }
 
   size() {
-    return Object.keys(this.registry).length;
+    return Object.keys(this._registry).length;
   }
 
-  remove (id) {
-    delete this.registry[id];
+  remove (id: string) {
+    delete this._registry[id];
   }
 
   clear() {
-    this.registry = {};
+    this._registry = {};
   }
 
   getShallowCopy() {
-    return {...this.registry};
+    return {...this._registry};
   }
 }

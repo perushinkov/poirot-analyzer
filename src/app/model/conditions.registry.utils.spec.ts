@@ -1,7 +1,9 @@
-import {ConditionsRegistryUtils as Utils} from './conditions.registry.utils';
+import {ConditionsRegistryUtils, ConditionsRegistryUtils as Utils} from './conditions.registry.utils';
 import {ConditionsRegistry} from './conditions.registry';
 import {MonoCompositeDef, MultiCompositeDef, SingleDef} from './defs';
 import {EXPECTED_TODO_VALUE} from '../../polyfills';
+import {SAMPLES} from './test-data/workspace.tdata';
+import {Conditions, NamedCondition} from './named.condition';
 
 describe('ConditionsRegistryUtils', () => {
   let testRegistry: ConditionsRegistry;
@@ -32,7 +34,7 @@ describe('ConditionsRegistryUtils', () => {
     unfinishedOr = {id: '10', name: 'unfinishedOr', type: 'or', values: ['9', '1', null]};
   });
 
-  describe('getChildrenArray tests', () => {
+  describe('METHOD: getChildrenArray tests', () => {
     When(() => {
       testRegistry = new ConditionsRegistry();
       testRegistry.register(singleDef1);
@@ -159,6 +161,94 @@ describe('ConditionsRegistryUtils', () => {
     Then(() => {
       expect(serializedRegistry).toEqual(reserializedRegistry);
       expect(deserializedDefs).toEqual([singleDef1, orDef2, unfinishedOr]);
+    });
+  });
+
+  describe('METHOD: buildNamedConditions', () => {
+    let namedConditions: Conditions;
+    Given(() => {
+      testRegistry = SAMPLES.registry();
+    });
+
+    describe('nothrow', () => {
+      When(() => {
+        namedConditions = ConditionsRegistryUtils.buildNamedConditions(testRegistry);
+      });
+
+      describe('When no referenced condition is named', () => {
+        Then(() => {
+          expect(namedConditions).toEqual({
+            is_US: new NamedCondition('is_US', '2'),
+            is_not_BG: new NamedCondition('is_not_BG', '3'),
+            between_joe_and_marta: new NamedCondition('between_joe_and_marta', '4'),
+            reliability_above_half: new NamedCondition('reliability_above_half', '5'),
+            cake_not_is_true: new NamedCondition('cake_not_is_true', '7')
+          });
+        });
+      });
+
+      describe('When named conditions are directly referenced', () => {
+        Given(() => {
+          testRegistry.fetch('1').name = 'is_BG';
+        });
+        Then(() => {
+          const isBGDef = new NamedCondition('is_BG', '1');
+          isBGDef.addReference('3');
+          expect(namedConditions).toEqual({
+            is_BG: isBGDef,
+            is_US: new NamedCondition('is_US', '2'),
+            is_not_BG: new NamedCondition('is_not_BG', '3'),
+            between_joe_and_marta: new NamedCondition('between_joe_and_marta', '4'),
+            reliability_above_half: new NamedCondition('reliability_above_half', '5'),
+            cake_not_is_true: new NamedCondition('cake_not_is_true', '7')
+          });
+        });
+      });
+
+      describe('WHen named conditions are indirectly referenced', () => {
+        Given(() => {
+          testRegistry.fetch('1').name = 'is_BG';
+          testRegistry.fetch('6').name = 'truth';
+          testRegistry.fetch('7').name = '';
+          // TODO: Add test where 1 isn't modified, and so isn't 6... so this case is illegal,
+          //       because it breaks the invariant that no unnamed condition should be referenced
+          //       more than once
+          testRegistry.register({id: '8', type: 'and', name: 'andy', values: ['7', '1']});
+        });
+        Then(() => {
+          const isBGDef = new NamedCondition('is_BG', '1');
+          isBGDef.addReference('3');
+          isBGDef.addReference('8');
+          const truthDef = new NamedCondition('truth', '6');
+          truthDef.addReference('7');
+          expect(namedConditions).toEqual({
+            is_BG: isBGDef,
+            is_US: new NamedCondition('is_US', '2'),
+            is_not_BG: new NamedCondition('is_not_BG', '3'),
+            between_joe_and_marta: new NamedCondition('between_joe_and_marta', '4'),
+            reliability_above_half: new NamedCondition('reliability_above_half', '5'),
+            truth: truthDef,
+            andy: new NamedCondition('andy', '8')
+          });
+        });
+      });
+    });
+
+    describe('throw', () => {
+      let throwCall;
+      Given(() => {
+        throwCall = () => ConditionsRegistryUtils.buildNamedConditions(testRegistry);
+      });
+
+      describe('when conditions with same names', () => {
+        Given(() => {
+          testRegistry.fetch('1').name = 'same name';
+          testRegistry.fetch('7').name = 'same name';
+        });
+        Then(() => {
+          expect(throwCall).toThrowError('Condition defs with the same names found!');
+        });
+      });
     });
   });
 });

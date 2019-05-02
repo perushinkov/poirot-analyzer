@@ -1,5 +1,6 @@
 import {ConditionsRegistry} from './conditions.registry';
 import {ConditionDef} from './defs';
+import {Conditions, NamedCondition} from './named.condition';
 
 export class ConditionsRegistryUtils {
   private static _getChildrenArray(registry: ConditionsRegistry, conditionId: string, followReferences: boolean, isRoot: boolean) {
@@ -38,7 +39,7 @@ export class ConditionsRegistryUtils {
     return this._getChildrenArray(registry, conditionId, followReferences, true);
   }
 
-  // TODO: TEST
+  // TODO: Should be tested before use, or removed entirely
   static containsWipNodes(registry: ConditionsRegistry, conditionId: string) {
     if (!conditionId) {
       return true;
@@ -46,9 +47,37 @@ export class ConditionsRegistryUtils {
     return ConditionsRegistryUtils.getChildrenArray(registry, conditionId, false).includes(null);
   }
 
-  // TODO: TEST
-  getName(registry: ConditionsRegistry, id: string) {
-    const def = registry.fetch(id);
-    return def ? def.name : '';
+  static buildNamedConditions(registry: ConditionsRegistry): Conditions {
+    const conditions: Conditions = {};
+    const registryObj = registry.getShallowCopy();
+    const listOfConditionDefs = Object.values(registryObj);
+
+    listOfConditionDefs
+      .filter(conditionDef => conditionDef.name && conditionDef.name !== '')
+      .map(conditionDef => new NamedCondition(conditionDef.name, conditionDef.id))
+      .forEach(def => {
+        if (conditions[def.name]) {
+          throw Error('Condition defs with the same names found!');
+        }
+        conditions[def.name] = def;
+      });
+
+    listOfConditionDefs.map(conditionDef => {
+      const referencedIds = [];
+      if (conditionDef.type === 'not') {
+        referencedIds.push(conditionDef.value);
+      }
+      if (conditionDef.type === 'and' || conditionDef.type === 'or') {
+        referencedIds.push(...conditionDef.values);
+      }
+      referencedIds.forEach(referencedId => {
+        const referencedDef = registry.fetch(referencedId);
+        // TODO: Add buildNamedConditions test that breaks if that last if clause is missing
+        if (referencedDef.name && referencedDef.name !== '' && referencedId !== conditionDef.id) {
+          conditions[referencedDef.name].addReference(conditionDef.id);
+        }
+      });
+    });
+    return conditions;
   }
 }

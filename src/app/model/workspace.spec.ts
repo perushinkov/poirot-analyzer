@@ -1,10 +1,11 @@
 import {Workspace, WorkspaceSerializer} from './workspace';
 import {GrammarTypes as GT} from './defs';
+import {NamedCondition} from './named.condition';
 
 describe('Workspace', () => {
-  let serializedWorkspace;
+  let serializedWorkspace, originalWorkspaceJSON;
   Given(() => {
-    serializedWorkspace = JSON.stringify({
+    originalWorkspaceJSON = {
       title: ' someTitle',
       positionSets: [{
         name: 'Some data set',
@@ -30,7 +31,8 @@ describe('Workspace', () => {
         MAJOR: 0,
         MINOR: 0
       }
-    });
+    };
+    serializedWorkspace = JSON.stringify(originalWorkspaceJSON);
   });
 
   describe('Expect serialization and deserialization to work', () => {
@@ -41,6 +43,9 @@ describe('Workspace', () => {
     });
     Then(() => {
       expect(JSON.parse(serializedWorkspace)).toEqual(JSON.parse(reserializedWorkspace));
+      // Verifying NamedCondition deserialization works
+      expect(NamedCondition.toString(deserializedWorkspace.conditions.ze_condition))
+        .toEqual(JSON.stringify(originalWorkspaceJSON.conditions.ze_condition));
     });
   });
 });

@@ -4,7 +4,7 @@ describe('IdGenerator test', () => {
   let actualValue, expectedValue;
   let componentUnderTest: IdGenerator;
   Given(() => {
-    componentUnderTest = new IdGenerator();
+    componentUnderTest = IdGenerator.buildDefault();
   });
 
   describe('METHOD: nextId', () => {

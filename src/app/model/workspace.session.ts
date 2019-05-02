@@ -3,6 +3,12 @@ import {Workspace} from './workspace';
 import {ConditionsRegistryUtils} from './conditions.registry.utils';
 import {NamedCondition} from './named.condition';
 
+export interface RemoveStatus {
+  error: boolean;
+  code?: string; // spec should test for code... msg is supposed to be user friendly, and is subject to change in i18n
+  msg?: string;
+}
+
 export class WorkspaceSession {
   static createForTest(workspace: Workspace, permanentBuilder: ConditionsBuilder, transientBuilder: ConditionsBuilder) {
     return new WorkspaceSession(workspace, permanentBuilder, transientBuilder);
@@ -19,8 +25,9 @@ export class WorkspaceSession {
       workspace.registry === permanentBuilder.registry
       && transientBuilder.registry !== workspace.registry;
     if (!validArguments) {
-      throw Error('Expected transient and permanent registry to be distinct');
+      throw Error('Transient and permanent registry should not be the same object');
     }
+    transientBuilder.registry.clear();
   }
 
   /**
@@ -36,15 +43,29 @@ export class WorkspaceSession {
    * 4. Unnamed condition nodes don't have a referenced_by list, since they're only referenced once.
    *    (They're created again and again within each custom named condition, and are removed together
    *     with the named condition, they're in). However, they can reference named conditions.
+   * 5. No conditions should be under edit when a condition is removed (conflict-avoidance)
+   * 6. Unnamed condition definitions in the registry that are not referenced by a single other condition def should be impossible!
    */
-  removeCondition(conditionId: string): boolean {
-    const registry = this.permanentBuilder.registry;
+  removeCondition(conditionId: string): RemoveStatus {
+    if (!conditionId || conditionId === '') {
+      return {error: true, code: 'BAD_ID', msg: 'invalid conditionId in removeCondition operation'};
+    }
+    if (this.transientBuilder.registry.size() > 0) {
+      return {error: true, code: 'EDIT_IN_PROGRESS', msg: 'cannot remove condition while an edit is in progress'};
+    }
+    const registry = this.workspace.registry;
     const rootCondition = registry.fetch(conditionId);
+    if (rootCondition === null) {
+      return {error: true, code: 'ID_NOT_FOUND', msg: 'Condition with that id not found in registry'};
+    }
     const namedConditions = this.workspace.conditions;
+    if (!namedConditions.hasOwnProperty(rootCondition.name)) {
+      return {error: true, code: 'UNNAMED_ID', msg: 'Can only remove named conditions. The rest should not be visible.'};
+    }
     const namedCondition = namedConditions[rootCondition.name];
-    const workspace = this.workspace;
+
     if (!namedCondition.canRemove()) {
-      return false;
+      return {error: true, code: 'REFERENCED', msg: 'Cannot remove referenced named condition'};
     }
     const deletedDefs = this.permanentBuilder.removeCondition(conditionId);
 
@@ -65,11 +86,13 @@ export class WorkspaceSession {
     }).forEach(pair => {
       const [parentId, childId] = pair;
       const child = this.workspace.registry.fetch(childId);
-      if (child.name !== '') {
+      // Since unnamed children get removed, the second check is superfluous, but makes reading easier (Should I keep it?)
+      if (child !== null && child.name !== '') {
         this.workspace.conditions[child.name].removeReference(parentId);
       }
     });
-    return true;
+    delete namedConditions[rootCondition.name];
+    return {error: false};
   }
 
   saveCondition(conditionId: string, overwrite: boolean, oldName: string) {

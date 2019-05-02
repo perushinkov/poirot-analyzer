@@ -1,6 +1,6 @@
 import {DataSet, Grammar} from './defs';
 import {ConditionsRegistry} from './conditions.registry';
-import {Conditions} from './named.condition';
+import {Conditions, NamedCondition} from './named.condition';
 import {Serializer} from './serializer.interface';
 
 
@@ -46,6 +46,10 @@ export class Workspace {
     return this._conditions;
   }
 
+  set conditions(conditions: Conditions) {
+    this._conditions = conditions;
+  }
+
   get allocations(): Array<any> {
     return this._allocations;
   }
@@ -53,12 +57,16 @@ export class Workspace {
 
 export class WorkspaceSerializer implements Serializer<Workspace> {
   toStr(workspace: Workspace): string {
+    const conditions: any = {};
+    Object
+      .values(workspace.conditions)
+      .forEach(namedCondition => conditions[namedCondition.name] = JSON.parse(NamedCondition.toString(namedCondition)));
     return JSON.stringify({
       title: workspace.title,
       positionSets: workspace.positionSets,
       grammar: workspace.grammar,
       registry: workspace.registry,
-      conditions: workspace.conditions,
+      conditions: conditions,
       allocations: workspace.allocations,
       version: SerializationVersion
     });
@@ -79,7 +87,11 @@ export class WorkspaceSerializer implements Serializer<Workspace> {
       // TODO: Make a general error/warning/info notification ui element
       return null;
     }
-    return new Workspace(parsed.title, parsed.positionSets, parsed.grammar, parsed.registry, parsed.conditions, parsed.allocations);
+    const conditions: Conditions = {};
+    Object
+      .keys(parsed.conditions)
+      .forEach(name => conditions[name] = NamedCondition.fromString(JSON.stringify(parsed.conditions[name])));
+    return new Workspace(parsed.title, parsed.positionSets, parsed.grammar, parsed.registry, conditions, parsed.allocations);
   }
 
   getIdentifier(entity: Workspace): string {

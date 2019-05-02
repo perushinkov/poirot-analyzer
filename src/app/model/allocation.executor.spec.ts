@@ -2,11 +2,11 @@ import {AllocationExecutor} from './allocation.executor';
 import {ConditionsRegistry} from './conditions.registry';
 import {AllocationDefinition, AllocationOutput, DataSet, GrammarTypes as GT} from './defs';
 import {ConditionsBuilder} from './conditions.builder';
-import {IdGenerator} from './id.generator';
+import {SAMPLES} from './test-data/workspace.tdata';
 
 describe('AllocationExecutor', () => {
   let componentUnderTest: AllocationExecutor;
-  let testRegistry: ConditionsRegistry; // TODO: Can be mocked!
+  let testRegistry: ConditionsRegistry;
   let sampleDataSet: DataSet;
   let testAllocation: AllocationDefinition;
   let conditions: any;
@@ -14,17 +14,7 @@ describe('AllocationExecutor', () => {
   let expectedAllocationOutput: AllocationOutput;
 
   Given(() => {
-    sampleDataSet = {
-      name: 'Employees',
-      positions: [
-        {name: 'Joe',     country: 'UK', salary: 170, reliability: 0.8},
-        {name: 'Elena',   country: 'UK', salary: 230, reliability: 0.8},
-        {name: 'Marta',   country: 'BG', salary: 140, reliability: 0.35},
-        {name: 'Diana',   country: 'BG', salary: 210, reliability: 0.56},
-        {name: 'John',    country: 'US', salary: 130, reliability: 0.15},
-        {name: 'Stefan',  country: 'GR', salary: 190, reliability: 0.71}
-      ]
-    };
+    sampleDataSet = SAMPLES.dataSet();
     testRegistry = new ConditionsRegistry();
     const builder = ConditionsBuilder.createFromRegistry(testRegistry);
     conditions = {};
