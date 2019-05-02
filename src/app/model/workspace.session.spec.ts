@@ -1,4 +1,4 @@
-import {RemoveStatus, WorkspaceSession} from './workspace.session';
+import {ErrorStatus, WorkspaceSession} from './workspace.session';
 import {Workspace} from './workspace';
 import {ConditionsBuilder} from './conditions.builder';
 import {SAMPLES} from './test-data/workspace.tdata';
@@ -12,9 +12,13 @@ describe('WorkspaceSession', () => {
   let permaBuilder: ConditionsBuilder;
   let editBuilder: ConditionsBuilder;
   let originalConditionsCopy;
+  let originalRegistryCopy;
+
+
 
   Given(() => {
     workspace = SAMPLES.workspace();
+    originalRegistryCopy = SAMPLES.registry();
     permaBuilder = ConditionsBuilder.createFromRegistry(workspace.registry);
     originalConditionsCopy = ConditionsRegistryUtils.buildNamedConditions(workspace.registry); // easier than copying
     transientRegistry = new ConditionsRegistry();
@@ -50,56 +54,76 @@ describe('WorkspaceSession', () => {
     componentUnderTest = WorkspaceSession.createForTest(workspace, permaBuilder, editBuilder);
   });
 
+  describe('Prerequisites: removeCondition/loadConditionForEdit', () => {
+    let removeStatuses: ErrorStatus[];
+    let loadStatuses: ErrorStatus[];
+    let inputIds: string[];
+    let originalRegistryObj;
+
+    Given(() => {
+      originalRegistryObj = SAMPLES.registry().getShallowCopy();
+    });
+    When(() => {
+      removeStatuses = inputIds.map(removeId => componentUnderTest.removeCondition(removeId));
+      loadStatuses = inputIds.map(loadId => componentUnderTest.loadConditionForEdit(loadId));
+    });
+
+    // Fail cases... Is error codes okay? Should I switch to exceptions? Keep in mind when future reworks/issues arise
+    describe('bad condition id should lead to remove/load failure', () => {
+      Given(() => {
+        inputIds = [null, ''];
+      });
+      Then(() => {
+        expect(removeStatuses.map(status => status.code)).toEqual(['BAD_ID', 'BAD_ID']);
+        expect(loadStatuses.map(status => status.code)).toEqual(['BAD_ID', 'BAD_ID']);
+        expect(originalConditionsCopy).toEqual(workspace.conditions);
+        expect(originalRegistryObj).toEqual(workspace.registry.getShallowCopy());
+      });
+    });
+    describe('Non empty transient registry should lead to remove/load failure', () => {
+      Given(() => {
+        inputIds = ['2', '3'];
+        editBuilder.buildBool(true, 'Some_random_bool');
+      });
+      Then(() => {
+        expect(removeStatuses.map(status => status.code)).toEqual(['EDIT_IN_PROGRESS', 'EDIT_IN_PROGRESS']);
+        expect(loadStatuses.map(status => status.code)).toEqual(['EDIT_IN_PROGRESS', 'EDIT_IN_PROGRESS']);
+        expect(originalConditionsCopy).toEqual(workspace.conditions);
+        expect(originalRegistryObj).toEqual(workspace.registry.getShallowCopy());
+      });
+    });
+    describe('Missing condition id should result in remove/load failure', () => {
+      Given(() => {
+        inputIds = ['apple', 'pear'];
+      });
+      Then(() => {
+        expect(removeStatuses.map(status => status.code)).toEqual(['ID_NOT_FOUND', 'ID_NOT_FOUND']);
+        expect(loadStatuses.map(status => status.code)).toEqual(['ID_NOT_FOUND', 'ID_NOT_FOUND']);
+        expect(originalConditionsCopy).toEqual(workspace.conditions);
+        expect(originalRegistryObj).toEqual(workspace.registry.getShallowCopy());
+      });
+    });
+    describe('An unnamed condition def should result in a remove/load failure', () => {
+      Given(() => {
+        inputIds = ['1', '6'];
+      });
+      Then(() => {
+        expect(removeStatuses.map(status => status.code)).toEqual(['UNNAMED_ID', 'UNNAMED_ID']);
+        expect(loadStatuses.map(status => status.code)).toEqual(['UNNAMED_ID', 'UNNAMED_ID']);
+        expect(originalConditionsCopy).toEqual(workspace.conditions);
+        expect(originalRegistryObj).toEqual(workspace.registry.getShallowCopy());
+      });
+    });
+  });
+
   describe('METHOD: removeCondition', () => {
+    let removeStatuses: ErrorStatus[];
     let removeIds: string[];
-    let removeStatuses: RemoveStatus[];
 
     When(() => {
       removeStatuses = removeIds.map(removeId => componentUnderTest.removeCondition(removeId));
     });
 
-    // Fail cases... Is error codes okay? Should I switch to exceptions? Keep in mind when future reworks/issues arise
-    describe('bad condition id should lead to remove failure', () => {
-      Given(() => {
-        removeIds = [null, ''];
-      });
-      Then(() => {
-        expect(removeStatuses.map(status => status.error)).toEqual([true, true]);
-        expect(removeStatuses.map(status => status.code)).toEqual(['BAD_ID', 'BAD_ID']);
-        expect(originalConditionsCopy).toEqual(workspace.conditions);
-      });
-    });
-    describe('Non empty transient registry should lead to remove failure', () => {
-      Given(() => {
-        removeIds = ['2', '3'];
-        editBuilder.buildBool(true, 'Some_random_bool');
-      });
-      Then(() => {
-        expect(removeStatuses.map(status => status.error)).toEqual([true, true]);
-        expect(removeStatuses.map(status => status.code)).toEqual(['EDIT_IN_PROGRESS', 'EDIT_IN_PROGRESS']);
-        expect(originalConditionsCopy).toEqual(workspace.conditions);
-      });
-    });
-    describe('Missing condition id should result in remove failure', () => {
-      Given(() => {
-        removeIds = ['apple', 'pear'];
-      });
-      Then(() => {
-        expect(removeStatuses.map(status => status.error)).toEqual([true, true]);
-        expect(removeStatuses.map(status => status.code)).toEqual(['ID_NOT_FOUND', 'ID_NOT_FOUND']);
-        expect(originalConditionsCopy).toEqual(workspace.conditions);
-      });
-    });
-    describe('Removing an unnamed condition def should result in a remove failure', () => {
-      Given(() => {
-        removeIds = ['1', '6'];
-      });
-      Then(() => {
-        expect(removeStatuses.map(status => status.error)).toEqual([true, true]);
-        expect(removeStatuses.map(status => status.code)).toEqual(['UNNAMED_ID', 'UNNAMED_ID']);
-        expect(originalConditionsCopy).toEqual(workspace.conditions);
-      });
-    });
     describe('Removing a named, referenced condition def should fail', () => {
       Given(() => {
         removeIds = ['6'];
@@ -109,7 +133,6 @@ describe('WorkspaceSession', () => {
         originalConditionsCopy = ConditionsRegistryUtils.buildNamedConditions(workspace.registry);
       });
       Then(() => {
-        expect(removeStatuses.map(status => status.error)).toEqual([true]);
         expect(removeStatuses.map(status => status.code)).toEqual(['REFERENCED']);
         expect(workspace.conditions).toEqual(originalConditionsCopy);
       });
@@ -130,13 +153,12 @@ describe('WorkspaceSession', () => {
           .forEach(name => delete expectedConditions[name]);
         expectedConditions2 = ConditionsRegistryUtils.buildNamedConditions(workspace.registry);
 
-
-
         expect(workspace.conditions).toEqual(expectedConditions);
         expect(workspace.conditions).toEqual(expectedConditions2);
         const expectedRegistry = SAMPLES.registry().getShallowCopy();
         removeIds.forEach(id => delete expectedRegistry[id]);
         expect(workspace.registry.getShallowCopy()).toEqual(expectedRegistry);
+        expect(removeStatuses).toEqual([null, null, null]);
       });
     });
     describe('Removing a complex named without references to named', () => {
@@ -151,6 +173,7 @@ describe('WorkspaceSession', () => {
         expect(workspace.registry.getShallowCopy()).toEqual(expectedRegistry.getShallowCopy());
         expect(workspace.conditions).toEqual(ConditionsRegistryUtils.buildNamedConditions(workspace.registry));
         expect(beforeRegistrySize).toEqual(workspace.registry.size()  + 4);
+        expect(removeStatuses).toEqual([null, null]);
       });
     });
     describe('Removing a complex named with direct and indirect references to named', () => {
@@ -170,8 +193,8 @@ describe('WorkspaceSession', () => {
         const expectedConditions = ConditionsRegistryUtils.buildNamedConditions(expectedRegistry);
         expect(workspace.registry.getShallowCopy()).toEqual(expectedRegistry.getShallowCopy());
         expect(workspace.conditions).toEqual(expectedConditions);
+        expect(removeStatuses).toEqual([null]);
       });
-
     });
   });
 });

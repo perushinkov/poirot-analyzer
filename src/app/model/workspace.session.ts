@@ -2,9 +2,9 @@ import {ConditionsBuilder} from './conditions.builder';
 import {Workspace} from './workspace';
 import {ConditionsRegistryUtils} from './conditions.registry.utils';
 import {NamedCondition} from './named.condition';
+import {ConditionDef} from './defs';
 
-export interface RemoveStatus {
-  error: boolean;
+export interface ErrorStatus {
   code?: string; // spec should test for code... msg is supposed to be user friendly, and is subject to change in i18n
   msg?: string;
 }
@@ -30,6 +30,25 @@ export class WorkspaceSession {
     transientBuilder.registry.clear();
   }
 
+  private fetchIfValid(conditionId: string): [ConditionDef, ErrorStatus] {
+    let errorStatus: ErrorStatus = null;
+    const rootCondition = this.workspace.registry.fetch(conditionId);
+
+    if (!conditionId || conditionId === '') {
+      errorStatus = {code: 'BAD_ID', msg: 'invalid conditionId in removeCondition operation'};
+    } else if (this.transientBuilder.registry.size() > 0) {
+      errorStatus = {code: 'EDIT_IN_PROGRESS', msg: 'cannot remove condition while an edit is in progress'};
+    } else if (rootCondition === null) {
+      errorStatus = {code: 'ID_NOT_FOUND', msg: 'Condition with that id not found in registry'};
+    } else if (!this.workspace.conditions.hasOwnProperty(rootCondition.name)) {
+      errorStatus = {code: 'UNNAMED_ID', msg: 'Can only remove named conditions.'};
+    } else if (!this.workspace.conditions[rootCondition.name].canRemove()) {
+      errorStatus = {code: 'REFERENCED', msg: 'Cannot remove referenced named condition'};
+    }
+
+    return [rootCondition, errorStatus];
+  }
+
   /**
    * The method removes a condition from the workspace registry.
    * If it's a simple condition that's trivial. If it's a custom condition, a few invariants must be
@@ -46,26 +65,10 @@ export class WorkspaceSession {
    * 5. No conditions should be under edit when a condition is removed (conflict-avoidance)
    * 6. Unnamed condition definitions in the registry that are not referenced by a single other condition def should be impossible!
    */
-  removeCondition(conditionId: string): RemoveStatus {
-    if (!conditionId || conditionId === '') {
-      return {error: true, code: 'BAD_ID', msg: 'invalid conditionId in removeCondition operation'};
-    }
-    if (this.transientBuilder.registry.size() > 0) {
-      return {error: true, code: 'EDIT_IN_PROGRESS', msg: 'cannot remove condition while an edit is in progress'};
-    }
-    const registry = this.workspace.registry;
-    const rootCondition = registry.fetch(conditionId);
-    if (rootCondition === null) {
-      return {error: true, code: 'ID_NOT_FOUND', msg: 'Condition with that id not found in registry'};
-    }
-    const namedConditions = this.workspace.conditions;
-    if (!namedConditions.hasOwnProperty(rootCondition.name)) {
-      return {error: true, code: 'UNNAMED_ID', msg: 'Can only remove named conditions. The rest should not be visible.'};
-    }
-    const namedCondition = namedConditions[rootCondition.name];
-
-    if (!namedCondition.canRemove()) {
-      return {error: true, code: 'REFERENCED', msg: 'Cannot remove referenced named condition'};
+  removeCondition(conditionId: string): ErrorStatus {
+    const [rootCondition, errorStatus] = this.fetchIfValid(conditionId);
+    if (errorStatus) {
+      return errorStatus;
     }
     const deletedDefs = this.permanentBuilder.removeCondition(conditionId);
 
@@ -91,8 +94,8 @@ export class WorkspaceSession {
         this.workspace.conditions[child.name].removeReference(parentId);
       }
     });
-    delete namedConditions[rootCondition.name];
-    return {error: false};
+    delete this.workspace.conditions[rootCondition.name];
+    return null;
   }
 
   saveCondition(conditionId: string, overwrite: boolean, oldName: string) {
@@ -146,25 +149,21 @@ export class WorkspaceSession {
     return true;
   }
 
-  loadConditionForEdit(conditionId: string) {
-    // const sourceRegistry = this.workspace.registry;
-    const rootNode = this.workspace.registry.fetch(conditionId);
-    // const targetRegistry = this.transientRegistry;
-    // const targetFactory = new ConditionsFactory(targetRegistry);
-    if (rootNode.name.length === 0) {
-      const errMsg = 'Only named conditions can be edited. Aborting... ';
-      throw new Error(errMsg);
+  loadConditionForEdit(conditionId: string): ErrorStatus {
+    const [rootCondition, errorStatus] = this.fetchIfValid(conditionId);
+    if (errorStatus) {
+      return errorStatus;
     }
-
     const children = ConditionsRegistryUtils.getChildrenArray(this.workspace.registry, conditionId, false);
     // Note that here no complex id mapping is needed, since an empty target registry ensures lack of conflicts
     this.transientBuilder.registry.clear();
     children.forEach(condition => {
-      if (condition.id !== rootNode.id && condition.name.length !== 0) {
+      if (condition.id !== rootCondition.id && condition.name.length !== 0) {
         this.transientBuilder.buildReference(condition.name);
       } else {
         this.transientBuilder.importCondition(condition);
       }
     });
+    return null;
   }
 }
