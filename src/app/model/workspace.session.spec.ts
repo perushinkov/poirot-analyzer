@@ -197,6 +197,61 @@ describe('WorkspaceSession', () => {
       });
     });
   });
+
+  describe('METHOD: loadConditionForEdit', () => {
+    let editConditionId: string;
+    let errorStatus: ErrorStatus;
+    When(() => {
+      errorStatus = componentUnderTest.loadConditionForEdit(editConditionId);
+    });
+
+    describe('Loading a simple condition', () => {
+      Given(() => {
+        editConditionId = '2';
+      });
+      Then(() => {
+        const expectedBuilder = ConditionsBuilder.createEmpty();
+        expectedBuilder.buildIdentity('country', 'US', 'is_US');
+        expect(editBuilder.registry.getShallowCopy()).toEqual(expectedBuilder.registry.getShallowCopy());
+        expect(errorStatus).toBeNull();
+      });
+    });
+
+    describe('Loading a complex condition without references', () => {
+      Given(() => {
+        editConditionId = '3';
+      });
+      Then(() => {
+        const expectedBuilder = ConditionsBuilder.createEmpty();
+        expectedBuilder.buildNot(expectedBuilder.buildIdentity('country', 'BG').id, 'is_not_BG');
+        expect(editBuilder.registry.getShallowCopy()).toEqual(expectedBuilder.registry.getShallowCopy());
+        expect(errorStatus).toBeNull();
+      });
+    });
+
+    describe('Loading a complex condition with references', () => {
+      Given(() => {
+        editConditionId = '10';
+        permaBuilder.buildBool(false); // id: '8'
+        permaBuilder.buildNot('2'); // id: '9'
+        permaBuilder.buildAnd(['7', '8', '9'], 'andy'); // id: '10'
+        workspace.conditions = ConditionsRegistryUtils.buildNamedConditions(workspace.registry);
+      });
+      Then(() => {
+        const expectedBuilder = ConditionsBuilder.createEmpty();
+        expectedBuilder.buildAnd([
+          expectedBuilder.buildReference('cake_not_is_true').id,
+          expectedBuilder.buildBool(false).id,
+          expectedBuilder.buildNot(
+            expectedBuilder.buildReference('is_US').id
+          ).id
+        ], 'andy');
+        expect(editBuilder.registry.getShallowCopy()).toEqual(expectedBuilder.registry.getShallowCopy());
+        expect(errorStatus).toBeNull();
+      });
+    });
+
+  });
 });
 // TODO: Unnamed conditions should only be part of 1 complex named condition tree.
 //       No reuse is allowed. Make a verify registry on save/load.

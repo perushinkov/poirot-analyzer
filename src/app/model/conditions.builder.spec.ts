@@ -83,7 +83,7 @@ describe('ConditionsBuilder', () => {
 
       When(() => {
         actualValues = {};
-        actualValues.newConditionId = componentUnderTest.importCondition(testCondition);
+        actualValues.newConditionId = componentUnderTest.importCondition(testCondition).id;
 
       });
       Then(() => {

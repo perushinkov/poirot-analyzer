@@ -158,11 +158,11 @@ export class ConditionsBuilder {
    * Only responsibility of method is to copy the input condition
    * into the registry with a new id
    */
-  importCondition(condition: ConditionDef): string {
+  importCondition(condition: ConditionDef): ConditionDef {
     const conditionCopy = {...condition};
     conditionCopy.id = this._idGenerator.nextId();
     this._registry.register(conditionCopy);
-    return conditionCopy.id;
+    return conditionCopy;
   }
 
   /**

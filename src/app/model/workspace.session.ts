@@ -141,7 +141,7 @@ export class WorkspaceSession {
       if (child.type === 'reference') {
         idToNewIds[originalId]  = child.value;
       } else {
-        idToNewIds[originalId] = this.permanentBuilder.importCondition(child);
+        idToNewIds[originalId] = this.permanentBuilder.importCondition(child).id;
       }
     });
 
@@ -157,12 +157,21 @@ export class WorkspaceSession {
     const children = ConditionsRegistryUtils.getChildrenArray(this.workspace.registry, conditionId, false);
     // Note that here no complex id mapping is needed, since an empty target registry ensures lack of conflicts
     this.transientBuilder.registry.clear();
+    const oldIdToNewIdMap = {};
     children.forEach(condition => {
+      let newId: string;
       if (condition.id !== rootCondition.id && condition.name.length !== 0) {
-        this.transientBuilder.buildReference(condition.name);
+        newId = this.transientBuilder.buildReference(condition.name).id;
       } else {
-        this.transientBuilder.importCondition(condition);
+        const importedDef = this.transientBuilder.importCondition(condition);
+        newId = importedDef.id;
+        if (importedDef.type === 'not') {
+          importedDef.value = oldIdToNewIdMap[importedDef.value];
+        } else if (importedDef.type === 'or' || importedDef.type === 'and') {
+          importedDef.values = importedDef.values.map(id => oldIdToNewIdMap[id]);
+        }
       }
+      oldIdToNewIdMap[condition.id] = newId;
     });
     return null;
   }
