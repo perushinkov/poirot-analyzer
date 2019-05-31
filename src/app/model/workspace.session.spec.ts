@@ -259,7 +259,7 @@ describe('WorkspaceSession', () => {
    *  - [DONE] Edit registry is empty. Nothing to save
    *  - [DONE] Root node is a reference to non-existent condition in edit registry.
    *  - [DONE] Only a named condition can be saved.
-   *  - Condition def tree contains a reference to a non-existent condition in edit registry
+   *  - [DONE] Condition def tree contains a reference to a non-existent condition in edit registry
    *
    *  WHEN CREATING A NEW CONDITION
    *  - [DONE] New condition has conflicting name.
@@ -317,6 +317,21 @@ describe('WorkspaceSession', () => {
         expect(preCallRegistry).toEqual(afterCallRegistry);
         expect(preCallEditRegistry).toEqual(afterCallEditRegistry);
       });
+    });
+    describe('saved condition must not contain broken references', () => {
+      Given(() => {
+        const editConditionId = editBuilder.buildAnd([
+          editBuilder.buildReference('reliability_above_half').id,
+          editBuilder.buildReference('is_USSR').id
+        ], 'name_does_not_matter').id;
+        [savedId, overwrite, oldName] = [editConditionId, false, null];
+      });
+      Then(() => {
+        expect(errorStatus.code).toEqual('BROKEN_REF');
+        expect(preCallRegistry).toEqual(afterCallRegistry);
+        expect(preCallEditRegistry).toEqual(afterCallEditRegistry);
+      });
+
     });
 
     describe('When creating a new condition', () => {

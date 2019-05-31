@@ -122,17 +122,26 @@ export class WorkspaceSession {
     const newConditionHasConflictingName = newNameExists && !updateExisting;
     const conditionRenameToConflictingName = newNameExists && updateExisting && nameChange;
     if (newConditionHasConflictingName || conditionRenameToConflictingName) {
-      // TODO: test both scenarios
       return {code: 'NAME_IN_USE', msg: 'A condition already exists under this name.'};
     }
 
-    if (updateExisting) {
-      console.error('Removing old version: ', oldName);
-      this.removeCondition(this.workspace.conditions[oldName].conditionId);
-    }
 
     const children = ConditionsRegistryUtils.getChildrenArray(this.transientBuilder.registry, conditionId, false);
 
+    // Validate references first
+    const badRef = children.find(def => {
+      if (def.type === 'reference') {
+        return !this.workspace.conditions.hasOwnProperty(def.value);
+      }
+      return false;
+    });
+    if (badRef !== undefined) {
+      return {code: 'BROKEN_REF', msg: 'Condition contains a reference to a non-existent condition.'};
+    }
+
+    if (updateExisting) {
+      this.removeCondition(this.workspace.conditions[oldName].conditionId);
+    }
     const idToNewIds = {};
 
     // iterate and transfer to nonTransient
