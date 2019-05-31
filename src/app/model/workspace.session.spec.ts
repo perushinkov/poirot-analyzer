@@ -4,6 +4,7 @@ import {ConditionsBuilder} from './conditions.builder';
 import {SAMPLES} from './test-data/workspace.tdata';
 import {ConditionsRegistry} from './conditions.registry';
 import {ConditionsRegistryUtils} from './conditions.registry.utils';
+import { SingleDef } from './defs';
 
 describe('WorkspaceSession', () => {
   let componentUnderTest: WorkspaceSession;
@@ -204,7 +205,6 @@ describe('WorkspaceSession', () => {
     When(() => {
       errorStatus = componentUnderTest.loadConditionForEdit(editConditionId);
     });
-
     describe('Loading a simple condition', () => {
       Given(() => {
         editConditionId = '2';
@@ -216,7 +216,6 @@ describe('WorkspaceSession', () => {
         expect(errorStatus).toBeNull();
       });
     });
-
     describe('Loading a complex condition without references', () => {
       Given(() => {
         editConditionId = '3';
@@ -228,7 +227,6 @@ describe('WorkspaceSession', () => {
         expect(errorStatus).toBeNull();
       });
     });
-
     describe('Loading a complex condition with references', () => {
       Given(() => {
         editConditionId = '10';
@@ -250,12 +248,133 @@ describe('WorkspaceSession', () => {
         expect(errorStatus).toBeNull();
       });
     });
+  });
 
+  /**
+   * NOTE: Makes use of loadConditionForEdit
+   *
+   * TESTING PLAN:
+   *
+   *  ALWAYS
+   *  - [DONE] Edit registry is empty. Nothing to save
+   *  - [DONE] Root node is a reference to non-existent condition in edit registry.
+   *  - [DONE] Only a named condition can be saved.
+   *  - Condition def tree contains a reference to a non-existent condition in edit registry
+   *
+   *  WHEN CREATING A NEW CONDITION
+   *  - [DONE] New condition has conflicting name.
+   *  + from scratch
+   *  + from existing
+   *
+   *  WHEN EDITING EXISTING CONDITION
+   *  - [DONE] Original condition is missing. Cannot perform override
+   *  - [DONE] Renamed condition has conflicting name.
+   *  + with rename
+   *  + without rename
+   *
+   */
+  describe('METHOD: saveCondition', () => {
+    let savedId: string;
+    let overwrite: boolean;
+    let oldName: string;
+    let errorStatus: ErrorStatus;
+    let preCallRegistry, afterCallRegistry;
+    let preCallEditRegistry, afterCallEditRegistry;
+    When(() => {
+      preCallRegistry = permaBuilder.registry.getShallowCopy();
+      preCallEditRegistry = editBuilder.registry.getShallowCopy();
+
+      errorStatus = componentUnderTest.saveCondition(savedId, overwrite, oldName);
+
+      afterCallRegistry = permaBuilder.registry.getShallowCopy();
+      afterCallEditRegistry = editBuilder.registry.getShallowCopy();
+    });
+
+    describe('edit registry must be non-empty', () => {
+      Then(() => {
+        expect(errorStatus.code).toEqual('NOT_EDITING');
+        expect(preCallRegistry).toEqual(afterCallRegistry);
+      });
+    });
+    describe('savedId must be existent in the edit registry', () => {
+      Given(() => {
+        componentUnderTest.loadConditionForEdit('2');
+        [savedId, overwrite, oldName] = ['nonexistent_id', true, 'someName'];
+      });
+      Then(() => {
+        expect(errorStatus.code).toEqual('ID_NOT_FOUND');
+        expect(preCallRegistry).toEqual(afterCallRegistry);
+        expect(preCallEditRegistry).toEqual(afterCallEditRegistry);
+      });
+    });
+    describe('savedId must be of a named condition in the edit registry', () => {
+      Given(() => {
+        componentUnderTest.loadConditionForEdit('3');
+        [savedId, overwrite, oldName] = ['1', true, 'someName'];
+      });
+      Then(() => {
+        expect(errorStatus.code).toEqual('UNNAMED_ID');
+        expect(preCallRegistry).toEqual(afterCallRegistry);
+        expect(preCallEditRegistry).toEqual(afterCallEditRegistry);
+      });
+    });
+
+    describe('When creating a new condition', () => {
+      Given(() => {
+        overwrite = false;
+      });
+      describe('New condition has conflicting name', () => {
+        Given(() => {
+          const newConditionId = editBuilder.buildNot(
+            editBuilder.buildBool(false).id,
+            'reliability_above_half').id;
+          [savedId, oldName] = [newConditionId, null];
+        });
+        Then(() => {
+          expect(errorStatus.code).toEqual('NAME_IN_USE');
+          expect(preCallRegistry).toEqual(afterCallRegistry);
+          expect(preCallEditRegistry).toEqual(afterCallEditRegistry);
+        });
+      });
+    });
+    describe('When editing existing condition', () => {
+      Given(() => {
+        overwrite = true;
+      });
+      describe('Original condition must not be missing', () => {
+        Given(() => {
+          componentUnderTest.loadConditionForEdit('2');
+          const mappedId = transientRegistry.fetch(transientRegistry.lastId).id;
+          [savedId, oldName] = [mappedId, 'is_USSR'];
+        });
+        Then(() => {
+          expect(errorStatus.code).toEqual('MISSING_ORIGINAL');
+          expect(preCallRegistry).toEqual(afterCallRegistry);
+          expect(preCallEditRegistry).toEqual(afterCallEditRegistry);
+        });
+      });
+      describe('Condition cannot be renamed to a name in use', () => {
+        Given(() => {
+          componentUnderTest.loadConditionForEdit('3');
+          // Introducing modification to ensure it's not saved
+          const is_BG = transientRegistry.fetch('1') as SingleDef;
+          is_BG.value = 'DE';
+          const editRootId = transientRegistry.fetch(transientRegistry.lastId).id;
+          [savedId, oldName] = [editRootId, 'reliability_above_half'];
+        });
+        Then(() => {
+          expect(errorStatus.code).toEqual('NAME_IN_USE');
+          expect(preCallRegistry).toEqual(afterCallRegistry);
+          expect(preCallEditRegistry).toEqual(afterCallEditRegistry);
+        });
+      });
+    });
   });
 });
 // TODO: Unnamed conditions should only be part of 1 complex named condition tree.
 //       No reuse is allowed. Make a verify registry on save/load.
 //       Perhaps integrate it in buildConditionsFromRegistry?
-
 // TODO: Creating cyclic references shouldn't be possible. Consider where this
 //       could possibly be enforced, and/or detected.
+
+

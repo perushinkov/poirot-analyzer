@@ -98,24 +98,35 @@ export class WorkspaceSession {
     return null;
   }
 
-  saveCondition(conditionId: string, overwrite: boolean, oldName: string) {
+  saveCondition(conditionId: string, updateExisting: boolean, oldName: string): ErrorStatus {
+    const editRegistry = this.transientBuilder.registry;
+    if (editRegistry.size() === 0) {
+      return {code: 'NOT_EDITING', msg: 'Edit registry is empty. Nothing to save!'};
+    }
     const rootNode = this.transientBuilder.registry.fetch(conditionId);
-
+    if (rootNode === null) {
+      return {code: 'ID_NOT_FOUND', msg: 'Reference to non-existent condition in edit registry. Cannot remove.'};
+    }
     // Some name/overwrite validation here
     if (!rootNode.name || rootNode.name.length === 0) {
-      console.error('Conditions saved from editors must be named.');
-      return false;
-    }
-    if (overwrite && !this.workspace.conditions[oldName]) {
-      console.error('Overwriting a non-existent condition.');
-      return false;
-    }
-    if (!overwrite && this.workspace.conditions[rootNode.name]) {
-      console.error('This condition would overwrite an existing one!');
-      return false;
+      return {code: 'UNNAMED_ID', msg: 'Only a named condition can be saved.'};
     }
 
-    if (overwrite) {
+    const oldNameExists = this.workspace.conditions.hasOwnProperty(oldName);
+    const newNameExists = this.workspace.conditions.hasOwnProperty(rootNode.name);
+    const nameChange = oldName !== rootNode.name;
+    if (updateExisting && !oldNameExists) {
+      return {code: 'MISSING_ORIGINAL', msg: 'Original condition is missing. Cannot perform override!'};
+    }
+
+    const newConditionHasConflictingName = newNameExists && !updateExisting;
+    const conditionRenameToConflictingName = newNameExists && updateExisting && nameChange;
+    if (newConditionHasConflictingName || conditionRenameToConflictingName) {
+      // TODO: test both scenarios
+      return {code: 'NAME_IN_USE', msg: 'A condition already exists under this name.'};
+    }
+
+    if (updateExisting) {
       console.error('Removing old version: ', oldName);
       this.removeCondition(this.workspace.conditions[oldName].conditionId);
     }
@@ -146,9 +157,15 @@ export class WorkspaceSession {
     });
 
     this.workspace.conditions[rootNode.name] = new NamedCondition(rootNode.name, idToNewIds[rootNode.id]);
-    return true;
+    return null;
   }
 
+  /**
+   * NOTE:
+   *  Since the root condition is the last def to be transferred to the transient registry,
+   *  Fetching the root def from the transient registry after save is as easy as:
+   *    transientRegistry.fetch(transientRegistry.lastId())
+   */
   loadConditionForEdit(conditionId: string): ErrorStatus {
     const [rootCondition, errorStatus] = this.fetchIfValid(conditionId);
     if (errorStatus) {
