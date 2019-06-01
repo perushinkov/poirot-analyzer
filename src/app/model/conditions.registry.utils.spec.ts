@@ -174,7 +174,6 @@ describe('ConditionsRegistryUtils', () => {
       When(() => {
         namedConditions = ConditionsRegistryUtils.buildNamedConditions(testRegistry);
       });
-
       describe('When no referenced condition is named', () => {
         Then(() => {
           expect(namedConditions).toEqual({
@@ -182,7 +181,12 @@ describe('ConditionsRegistryUtils', () => {
             is_not_BG: new NamedCondition('is_not_BG', '3'),
             between_joe_and_marta: new NamedCondition('between_joe_and_marta', '4'),
             reliability_above_half: new NamedCondition('reliability_above_half', '5'),
-            cake_not_is_true: new NamedCondition('cake_not_is_true', '7')
+            cake_not_is_true: NamedCondition.fromString(JSON.stringify({
+              name: 'cake_not_is_true',
+              conditionId: '7',
+              references: ['9']
+            })),
+            cake_is_a_lie_or_false: new NamedCondition('cake_is_a_lie_or_false', '9')
           });
         });
       });
@@ -200,13 +204,20 @@ describe('ConditionsRegistryUtils', () => {
             is_not_BG: new NamedCondition('is_not_BG', '3'),
             between_joe_and_marta: new NamedCondition('between_joe_and_marta', '4'),
             reliability_above_half: new NamedCondition('reliability_above_half', '5'),
-            cake_not_is_true: new NamedCondition('cake_not_is_true', '7')
+            cake_not_is_true: NamedCondition.fromString(JSON.stringify({
+              name: 'cake_not_is_true',
+              conditionId: '7',
+              references: ['9']
+            })),
+            cake_is_a_lie_or_false: new NamedCondition('cake_is_a_lie_or_false', '9')
           });
         });
       });
 
       describe('WHen named conditions are indirectly referenced', () => {
         Given(() => {
+          testRegistry.remove('8');
+          testRegistry.remove('9');
           testRegistry.fetch('1').name = 'is_BG';
           testRegistry.fetch('6').name = 'truth';
           testRegistry.fetch('7').name = '';

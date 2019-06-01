@@ -45,7 +45,12 @@ const _makeRegistry = function () {
   builder.buildBetween('name', {range: ['Joe', 'Marta'], included: [0, 1]}, 'between_joe_and_marta');
   builder.buildComparison('reliability', {operator: '>', value: 0.5}, 'reliability_above_half');
   const is_true = builder.buildBool(true).id;
-  builder.buildNot(is_true, 'cake_not_is_true');
+  const cake_not_is_true = builder.buildNot(is_true, 'cake_not_is_true').id;
+  const is_true_2 = builder.buildBool(true).id;
+  builder.buildOr([
+    cake_not_is_true,
+    is_true_2
+  ], 'cake_is_a_lie_or_false');
   return sampleRegistry;
 };
 

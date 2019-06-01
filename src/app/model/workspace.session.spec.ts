@@ -166,12 +166,15 @@ describe('WorkspaceSession', () => {
     describe('Removing a complex named without references to named', () => {
       let beforeRegistrySize;
       Given(() => {
+        workspace.registry.remove('8');
+        workspace.registry.remove('9');
+        workspace.conditions = ConditionsRegistryUtils.buildNamedConditions(workspace.registry);
         beforeRegistrySize = workspace.registry.size();
         removeIds = ['3', '7'];
       });
       Then(() => {
         const expectedRegistry = SAMPLES.registry();
-        ['1', '3', '6', '7'].forEach(id => expectedRegistry.remove(id));
+        ['1', '3', '6', '7', '8', '9'].forEach(id => expectedRegistry.remove(id));
         expect(workspace.registry.getShallowCopy()).toEqual(expectedRegistry.getShallowCopy());
         expect(workspace.conditions).toEqual(ConditionsRegistryUtils.buildNamedConditions(workspace.registry));
         expect(beforeRegistrySize).toEqual(workspace.registry.size()  + 4);
@@ -181,10 +184,10 @@ describe('WorkspaceSession', () => {
     describe('Removing a complex named with direct and indirect references to named', () => {
       let oldRegistrySize;
       Given(() => {
-        removeIds = ['10'];
-        permaBuilder.buildBool(false); // id: '8'
-        permaBuilder.buildNot('2'); // id: '9'
-        permaBuilder.buildAnd(['7', '8', '9'], 'andy'); // id: '10'
+        const falseId = permaBuilder.buildBool(false).id;
+        const not2 = permaBuilder.buildNot('2').id;
+        permaBuilder.buildAnd(['7', falseId, not2], 'andy');
+        removeIds = [permaBuilder.registry.lastId];
         workspace.conditions = ConditionsRegistryUtils.buildNamedConditions(workspace.registry);
         originalConditionsCopy = ConditionsRegistryUtils.buildNamedConditions(workspace.registry);
         oldRegistrySize = workspace.registry.size();
@@ -230,10 +233,10 @@ describe('WorkspaceSession', () => {
     });
     describe('Loading a complex condition with references', () => {
       Given(() => {
-        editConditionId = '10';
-        permaBuilder.buildBool(false); // id: '8'
-        permaBuilder.buildNot('2'); // id: '9'
-        permaBuilder.buildAnd(['7', '8', '9'], 'andy'); // id: '10'
+        const falseId = permaBuilder.buildBool(false).id;
+        const notTwoId = permaBuilder.buildNot('2').id;
+        permaBuilder.buildAnd(['7', falseId, notTwoId], 'andy');
+        editConditionId = permaBuilder.registry.lastId;
         workspace.conditions = ConditionsRegistryUtils.buildNamedConditions(workspace.registry);
       });
       Then(() => {
