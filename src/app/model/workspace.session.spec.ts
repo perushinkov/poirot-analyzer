@@ -365,12 +365,12 @@ describe('WorkspaceSession', () => {
             {type: 'or', name: ''},
             {type: 'and', name: CONDITION_NAME}
           ]);
+          expect(ConditionsRegistryUtils.integrityCheck(workspace.registry, workspace.conditions)).toBeTruthy();
         });
       });
       describe('Should save condition created from existing', () => {
-        const CONDITION_TO_MODIFY = 'is_not_BG';
-        const NEW_NAME = CONDITION_TO_MODIFY + 'modified';
-        // TODO: save a condition that holds references to other conditions
+        const CONDITION_TO_MODIFY = 'cake_is_a_lie_or_false';
+        const NEW_NAME = CONDITION_TO_MODIFY + '_modified';
         Given(() => {
           const conditionIdToModify = workspace.conditions[CONDITION_TO_MODIFY].conditionId;
           componentUnderTest.loadConditionForEdit(conditionIdToModify);
@@ -392,9 +392,11 @@ describe('WorkspaceSession', () => {
               return {type: def.type, name: def.name};
             });
           expect(savedConditionSignature).toEqual([
-            {type: 'identity', name: ''},
-            {type: 'not', name: NEW_NAME}
+            {type: 'not', name: 'cake_not_is_true'},
+            {type: 'bool', name: ''},
+            {type: 'or', name: NEW_NAME}
           ]);
+          expect(ConditionsRegistryUtils.integrityCheck(workspace.registry, workspace.conditions)).toBeTruthy();
         });
       });
     });
@@ -433,7 +435,6 @@ describe('WorkspaceSession', () => {
         const CONDITION_TO_RENAME = 'is_not_BG';
         const NEW_NAME = CONDITION_TO_RENAME + '_renamed';
         Given(() => {
-          // TODO: rename a condition that has references to it
           const conditionIdToModify = workspace.conditions[CONDITION_TO_RENAME].conditionId;
           componentUnderTest.loadConditionForEdit(conditionIdToModify);
           const editNode = editBuilder.registry.fetch(editBuilder.registry.lastId);
@@ -457,20 +458,19 @@ describe('WorkspaceSession', () => {
             {type: 'identity', name: ''},
             {type: 'not', name: NEW_NAME}
           ]);
+          expect(ConditionsRegistryUtils.integrityCheck(workspace.registry, workspace.conditions)).toBeTruthy();
         });
       });
       describe('Should save modified condition', () => {
         const CONDITION_TO_MODIFY = 'is_not_BG';
         Given(() => {
-          // TODO: verify old unnamed node child is cleared up
-          // TODO: perform a condition modification that would result in
-          //  references map change of other conditions
           const conditionIdToModify = workspace.conditions[CONDITION_TO_MODIFY].conditionId;
           componentUnderTest.loadConditionForEdit(conditionIdToModify);
           const editNode = editBuilder.registry.fetch(editBuilder.registry.lastId) as MonoCompositeDef;
           editBuilder.removeCondition(editNode.value);
-          editNode.value = editBuilder.buildBool(false).id;
+          editNode.value = editBuilder.buildReference('is_US').id;
           [savedId, oldName] = [editNode.id, CONDITION_TO_MODIFY];
+          workspace.conditions = ConditionsRegistryUtils.buildNamedConditions(workspace.registry);
         });
         Then(() => {
           expect(afterCallEditRegistry).toEqual({});
@@ -486,9 +486,10 @@ describe('WorkspaceSession', () => {
               return {type: def.type, name: def.name};
             });
           expect(savedConditionSignature).toEqual([
-            {type: 'bool', name: ''},
+            {type: 'identity', name: 'is_US'},
             {type: 'not', name: CONDITION_TO_MODIFY}
           ]);
+          expect(ConditionsRegistryUtils.integrityCheck(workspace.registry, workspace.conditions)).toBeTruthy();
         });
       });
     });
@@ -499,7 +500,5 @@ describe('WorkspaceSession', () => {
 //       Perhaps integrate it in buildConditionsFromRegistry?
 // TODO: Creating cyclic references shouldn't be possible. Consider where this
 //       could possibly be enforced, and/or detected.
-// TODO: Verify NamedConditions are updated accordingly.
-// TODO: Try and verify that saving an existing condition with modifications
-//  won't lead to unnamed def duplication
+
 

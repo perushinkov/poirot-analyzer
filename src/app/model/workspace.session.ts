@@ -66,8 +66,13 @@ export class WorkspaceSession {
    * 6. Unnamed condition definitions in the registry that are not referenced by a single other condition def should be impossible!
    */
   removeCondition(conditionId: string): ErrorStatus {
+    return this._removeCondition(conditionId, false);
+  }
+
+  /** Casual wrapper, since saveCondition needs to call this method with super privileges. **/
+  private _removeCondition(conditionId: string, duringSave: boolean): ErrorStatus {
     const [rootCondition, errorStatus] = this.fetchIfValid(conditionId);
-    if (errorStatus) {
+    if (errorStatus && !duringSave) {
       return errorStatus;
     }
     const deletedDefs = this.permanentBuilder.removeCondition(conditionId);
@@ -140,28 +145,54 @@ export class WorkspaceSession {
     }
 
     if (updateExisting) {
-      this.removeCondition(this.workspace.conditions[oldName].conditionId);
+      this._removeCondition(this.workspace.conditions[oldName].conditionId, true);
     }
     const idToNewIds = {};
-
+    const referenceIds = {};
     // iterate and transfer to nonTransient
+
     children.forEach((child) => {
       const originalId = child.id;
 
+      // 1. Id remapping
       switch (child.type) {
         case 'not':
           child.value = idToNewIds[child.value];
           break;
         case 'and':
         case 'or':
-          child.values = child.values.map((oldId) => idToNewIds[oldId]);
+          child.values = child.values.map(oldId => idToNewIds[oldId]);
           break;
       }
 
+      // 2. Importing
       if (child.type === 'reference') {
         idToNewIds[originalId] = this.workspace.conditions[child.value].conditionId;
+        referenceIds[idToNewIds[originalId]] = child.value;
       } else {
         idToNewIds[originalId] = this.permanentBuilder.importCondition(child).id;
+      }
+
+      // 3. Reference keeping
+      // Note: This doesn't handle the irregular case where values has duplicate ids.
+      //       It is the factory's job to ensure the consistency.
+      switch (child.type) {
+        case 'not': {
+          const referencedName = referenceIds[child.value];
+          if (referencedName) {
+            this.workspace.conditions[referencedName].addReference(idToNewIds[originalId]);
+          }
+          break;
+        }
+        case 'and':
+        case 'or':
+          child.values.forEach(childId => {
+            const referencedName = referenceIds[childId];
+            if (referencedName) {
+              this.workspace.conditions[referencedName].addReference(idToNewIds[originalId]);
+            }
+          });
+          break;
       }
     });
 

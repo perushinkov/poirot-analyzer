@@ -13,6 +13,20 @@ export interface Conditions { [s: string]: NamedCondition; }
  *   named or unnamed conditions). Complex AND's and OR's should enforce
  *   no double-referencing of the same NamedCondition.
  */
+
+export function equalsConditions(a: Conditions, b: Conditions) {
+  const equalKeys = JSON.stringify(Object.keys(a)) === JSON.stringify(Object.keys(b));
+  if (equalKeys) {
+    const foundDiscrepancy = Object.keys(a).find(key => NamedCondition.toString(a[key]) !== NamedCondition.toString(b[key]));
+    if (foundDiscrepancy) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+  return false;
+}
+
 export class NamedCondition {
   constructor(private _name: string, private _conditionId: string) {}
 
@@ -54,6 +68,10 @@ export class NamedCondition {
       this._referenceCount++;
       this._references[conditionId] = true;
     }
+  }
+
+  hasReference(conditionId: string) {
+    return this._references.hasOwnProperty(conditionId);
   }
 
   removeReference(conditionId: string): boolean {

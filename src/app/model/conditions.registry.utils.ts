@@ -1,6 +1,6 @@
 import {ConditionsRegistry} from './conditions.registry';
 import {ConditionDef} from './defs';
-import {Conditions, NamedCondition} from './named.condition';
+import {Conditions, equalsConditions, NamedCondition} from './named.condition';
 
 export class ConditionsRegistryUtils {
   private static _getChildrenArray(registry: ConditionsRegistry, conditionId: string, followReferences: boolean, isRoot: boolean) {
@@ -79,5 +79,47 @@ export class ConditionsRegistryUtils {
       });
     });
     return conditions;
+  }
+
+  // TODO: Test at some point? It is a function heavily used in tests, though, so that's a test in itself
+  static integrityCheck(registry: ConditionsRegistry, conditions: Conditions) {
+    // 1. Check for correct condition reference counting
+    const expectedConditions = this.buildNamedConditions(registry);
+    if (!equalsConditions(expectedConditions, conditions)) {
+      return false;
+    }
+
+    // 2. Verify every unnamed registry node is used only once
+    const registryCopy = registry.getShallowCopy();
+    const references = [];
+    Object.values(registryCopy)
+      .forEach(def => {
+        switch (def.type) {
+          case 'and':
+          case 'or':
+            references.push(...def.values);
+            break;
+          case 'not':
+            references.push(def.value);
+        }
+      });
+    const referenceCount = {};
+    references.forEach(ref => {
+      referenceCount[ref] = referenceCount[ref] ? referenceCount[ref] + 1 : 1;
+    });
+    const irregularDef = Object
+      .values(registryCopy)
+      .filter(def => def.name === '')
+      .find(def => {
+        return referenceCount[def.id] !== 1;
+      });
+    if (irregularDef) {
+      console.log('Registry has unreferenced, or overly referenced def', irregularDef);
+      return false;
+    }
+
+    // TODO: 3. Verify conditions syntax/semantics
+    //       - check for no duplication in and/or values (LowPrio)
+    return true;
   }
 }
