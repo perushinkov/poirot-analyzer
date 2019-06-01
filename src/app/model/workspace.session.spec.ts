@@ -4,7 +4,7 @@ import {ConditionsBuilder} from './conditions.builder';
 import {SAMPLES} from './test-data/workspace.tdata';
 import {ConditionsRegistry} from './conditions.registry';
 import {ConditionsRegistryUtils} from './conditions.registry.utils';
-import { SingleDef } from './defs';
+import { MonoCompositeDef, SingleDef } from './defs';
 import { NamedCondition } from './named.condition';
 
 describe('WorkspaceSession', () => {
@@ -251,29 +251,6 @@ describe('WorkspaceSession', () => {
     });
   });
 
-  /**
-   * NOTE: Makes use of loadConditionForEdit
-   *
-   * TESTING PLAN:
-   *
-   *  ALWAYS
-   *  - [DONE] Edit registry is empty. Nothing to save
-   *  - [DONE] Root node is a reference to non-existent condition in edit registry.
-   *  - [DONE] Only a named condition can be saved.
-   *  - [DONE] Condition def tree contains a reference to a non-existent condition in edit registry
-   *
-   *  WHEN CREATING A NEW CONDITION
-   *  - [DONE] New condition has conflicting name.
-   *  + [DONE] from scratch
-   *  + from existing
-   *
-   *  WHEN EDITING EXISTING CONDITION
-   *  - [DONE] Original condition is missing. Cannot perform override
-   *  - [DONE] Renamed condition has conflicting name.
-   *  + with rename
-   *  + without rename
-   *
-   */
   describe('METHOD: saveCondition', () => {
     let savedId: string;
     let overwrite: boolean;
@@ -366,7 +343,7 @@ describe('WorkspaceSession', () => {
         });
         Then(() => {
           expect(afterCallEditRegistry).toEqual({});
-          const newCondition = workspace.conditions['gold_digger_criterion'];
+          const newCondition = workspace.conditions[CONDITION_NAME];
           expect(NamedCondition.toString(newCondition)).toEqual(JSON.stringify({
             name: CONDITION_NAME,
             conditionId: newCondition.conditionId,
@@ -384,6 +361,36 @@ describe('WorkspaceSession', () => {
             {type: 'comparison', name: ''},
             {type: 'or', name: ''},
             {type: 'and', name: CONDITION_NAME}
+          ]);
+        });
+      });
+      describe('Should save condition created from existing', () => {
+        const CONDITION_TO_MODIFY = 'is_not_BG';
+        const NEW_NAME = CONDITION_TO_MODIFY + 'modified';
+        // TODO: save a condition that holds references to other conditions
+        Given(() => {
+          const conditionIdToModify = workspace.conditions[CONDITION_TO_MODIFY].conditionId;
+          componentUnderTest.loadConditionForEdit(conditionIdToModify);
+          const editNode = editBuilder.registry.fetch(editBuilder.registry.lastId);
+          editNode.name = NEW_NAME;
+          [savedId, oldName] = [editNode.id, CONDITION_TO_MODIFY];
+        });
+        Then(() => {
+          expect(afterCallEditRegistry).toEqual({});
+          const newCondition = workspace.conditions[NEW_NAME];
+          expect(NamedCondition.toString(newCondition)).toEqual(JSON.stringify({
+            name: NEW_NAME,
+            conditionId: newCondition.conditionId,
+            references: []
+          }));
+          const savedConditionSignature = ConditionsRegistryUtils
+            .getChildrenArray(permaBuilder.registry, newCondition.conditionId, false)
+            .map(def => {
+              return {type: def.type, name: def.name};
+            });
+          expect(savedConditionSignature).toEqual([
+            {type: 'identity', name: ''},
+            {type: 'not', name: NEW_NAME}
           ]);
         });
       });
@@ -419,6 +426,68 @@ describe('WorkspaceSession', () => {
           expect(preCallEditRegistry).toEqual(afterCallEditRegistry);
         });
       });
+      describe('Should save renamed condition', () => {
+        const CONDITION_TO_RENAME = 'is_not_BG';
+        const NEW_NAME = CONDITION_TO_RENAME + '_renamed';
+        Given(() => {
+          // TODO: rename a condition that has references to it
+          const conditionIdToModify = workspace.conditions[CONDITION_TO_RENAME].conditionId;
+          componentUnderTest.loadConditionForEdit(conditionIdToModify);
+          const editNode = editBuilder.registry.fetch(editBuilder.registry.lastId);
+          editNode.name = NEW_NAME;
+          [savedId, oldName] = [editNode.id, CONDITION_TO_RENAME];
+        });
+        Then(() => {
+          expect(afterCallEditRegistry).toEqual({});
+          const newCondition = workspace.conditions[NEW_NAME];
+          expect(NamedCondition.toString(newCondition)).toEqual(JSON.stringify({
+            name: NEW_NAME,
+            conditionId: newCondition.conditionId,
+            references: []
+          }));
+          const savedConditionSignature = ConditionsRegistryUtils
+            .getChildrenArray(permaBuilder.registry, newCondition.conditionId, false)
+            .map(def => {
+              return {type: def.type, name: def.name};
+            });
+          expect(savedConditionSignature).toEqual([
+            {type: 'identity', name: ''},
+            {type: 'not', name: NEW_NAME}
+          ]);
+        });
+      });
+      describe('Should save modified condition', () => {
+        const CONDITION_TO_MODIFY = 'is_not_BG';
+        Given(() => {
+          // TODO: verify old unnamed node child is cleared up
+          // TODO: perform a condition modification that would result in
+          //  references map change of other conditions
+          const conditionIdToModify = workspace.conditions[CONDITION_TO_MODIFY].conditionId;
+          componentUnderTest.loadConditionForEdit(conditionIdToModify);
+          const editNode = editBuilder.registry.fetch(editBuilder.registry.lastId) as MonoCompositeDef;
+          editBuilder.removeCondition(editNode.value);
+          editNode.value = editBuilder.buildBool(false).id;
+          [savedId, oldName] = [editNode.id, CONDITION_TO_MODIFY];
+        });
+        Then(() => {
+          expect(afterCallEditRegistry).toEqual({});
+          const newCondition = workspace.conditions[CONDITION_TO_MODIFY];
+          expect(NamedCondition.toString(newCondition)).toEqual(JSON.stringify({
+            name: CONDITION_TO_MODIFY,
+            conditionId: newCondition.conditionId,
+            references: []
+          }));
+          const savedConditionSignature = ConditionsRegistryUtils
+            .getChildrenArray(permaBuilder.registry, newCondition.conditionId, false)
+            .map(def => {
+              return {type: def.type, name: def.name};
+            });
+          expect(savedConditionSignature).toEqual([
+            {type: 'bool', name: ''},
+            {type: 'not', name: CONDITION_TO_MODIFY}
+          ]);
+        });
+      });
     });
   });
 });
@@ -427,5 +496,7 @@ describe('WorkspaceSession', () => {
 //       Perhaps integrate it in buildConditionsFromRegistry?
 // TODO: Creating cyclic references shouldn't be possible. Consider where this
 //       could possibly be enforced, and/or detected.
-
+// TODO: Verify NamedConditions are updated accordingly.
+// TODO: Try and verify that saving an existing condition with modifications
+//  won't lead to unnamed def duplication
 

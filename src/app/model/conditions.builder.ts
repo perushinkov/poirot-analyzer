@@ -168,11 +168,12 @@ export class ConditionsBuilder {
   /**
    * Removes a condition recursively until a named condition is met.
    * Returns a list with the deleted condition defs
+   * TODO: Add a test with references
    */
   removeCondition(conditionId: string): ConditionDef[] {
     const deletedDefs = ConditionsRegistryUtils
       .getChildrenArray(this.registry, conditionId, false)
-      .filter(condition => condition && (condition.name === '' || condition.id === conditionId));
+      .filter(condition => condition && (condition.name === '' || condition.type === 'reference' || condition.id === conditionId));
     deletedDefs.forEach(def => this.registry.remove(def.id));
     return deletedDefs;
   }
