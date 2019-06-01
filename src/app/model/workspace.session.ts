@@ -159,13 +159,14 @@ export class WorkspaceSession {
       }
 
       if (child.type === 'reference') {
-        idToNewIds[originalId]  = child.value;
+        idToNewIds[originalId] = this.workspace.conditions[child.value].conditionId;
       } else {
         idToNewIds[originalId] = this.permanentBuilder.importCondition(child).id;
       }
     });
 
     this.workspace.conditions[rootNode.name] = new NamedCondition(rootNode.name, idToNewIds[rootNode.id]);
+    this.transientBuilder.registry.clear();
     return null;
   }
 

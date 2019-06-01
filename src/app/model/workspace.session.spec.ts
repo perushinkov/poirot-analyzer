@@ -5,6 +5,7 @@ import {SAMPLES} from './test-data/workspace.tdata';
 import {ConditionsRegistry} from './conditions.registry';
 import {ConditionsRegistryUtils} from './conditions.registry.utils';
 import { SingleDef } from './defs';
+import { NamedCondition } from './named.condition';
 
 describe('WorkspaceSession', () => {
   let componentUnderTest: WorkspaceSession;
@@ -263,7 +264,7 @@ describe('WorkspaceSession', () => {
    *
    *  WHEN CREATING A NEW CONDITION
    *  - [DONE] New condition has conflicting name.
-   *  + from scratch
+   *  + [DONE] from scratch
    *  + from existing
    *
    *  WHEN EDITING EXISTING CONDITION
@@ -338,7 +339,7 @@ describe('WorkspaceSession', () => {
       Given(() => {
         overwrite = false;
       });
-      describe('New condition has conflicting name', () => {
+      describe('New condition should not have a conflicting name', () => {
         Given(() => {
           const newConditionId = editBuilder.buildNot(
             editBuilder.buildBool(false).id,
@@ -349,6 +350,41 @@ describe('WorkspaceSession', () => {
           expect(errorStatus.code).toEqual('NAME_IN_USE');
           expect(preCallRegistry).toEqual(afterCallRegistry);
           expect(preCallEditRegistry).toEqual(afterCallEditRegistry);
+        });
+      });
+      describe('Should save newly created condition', () => {
+        const CONDITION_NAME = 'gold_digger_criterion';
+        Given(() => {
+          const newConditionId = editBuilder.buildAnd([
+            editBuilder.buildReference('is_not_BG').id,
+            editBuilder.buildOr([
+              editBuilder.buildBetween('age', {range: [25, 30], included: [1, 1]}).id,
+              editBuilder.buildComparison('savings', {operator: '>', value: 1000000}).id
+            ]).id
+          ], CONDITION_NAME).id;
+          [savedId, oldName] = [newConditionId, null];
+        });
+        Then(() => {
+          expect(afterCallEditRegistry).toEqual({});
+          const newCondition = workspace.conditions['gold_digger_criterion'];
+          expect(NamedCondition.toString(newCondition)).toEqual(JSON.stringify({
+            name: CONDITION_NAME,
+            conditionId: newCondition.conditionId,
+            references: []
+          }));
+
+          const savedConditionSignature = ConditionsRegistryUtils
+            .getChildrenArray(permaBuilder.registry, newCondition.conditionId, false)
+            .map(def => {
+              return {type: def.type, name: def.name};
+            });
+          expect(savedConditionSignature).toEqual([
+            {type: 'not', name: 'is_not_BG'},
+            {type: 'between', name: ''},
+            {type: 'comparison', name: ''},
+            {type: 'or', name: ''},
+            {type: 'and', name: CONDITION_NAME}
+          ]);
         });
       });
     });
