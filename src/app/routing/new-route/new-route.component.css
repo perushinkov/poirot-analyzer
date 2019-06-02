@@ -1,0 +1,8 @@
+.centerButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.buttonSelected {
+  background-color: rgba(0, 0, 0, 0.79);
+}

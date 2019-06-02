@@ -1,0 +1,36 @@
+<div [config]="{ show: true, ignoreBackdropClick: true, keyboard: false }" bsModal
+     class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dialog-auto-name">
+  <div class="modal-dialog modal-md">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 id="dialog-auto-name" class="modal-title pull-left">Save workspaces to:</h4>
+      </div>
+      <div class="modal-body">
+        <div class="container">
+          <div class="row">
+            <div class="col centerButton" *ngFor="let device of persistence.options; let selected = index">
+              <button type="button" class="btn btn-secondary"
+                      [ngClass]="persistence.selected === selected ? 'buttonSelected' : ''"
+                      (click)="selectPersistence(selected)">
+                {{device.displayName}}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="persistence.selected == 0 || persistence.selected == 1"
+           class="modal-footer centerButton">
+        <div *ngIf="persistence.selected == 0">
+          Google Drive component here
+          <!-- TODO: Google Drive login component -->
+          <button class="btn btn-primary">Login</button>
+        </div>
+        <div *ngIf="persistence.selected == 1">
+          Local storage component here
+          <!-- TODO: Browser component to perhaps ask for a local storage quota if needed? -->
+          <button class="btn btn-primary">Request quota</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
