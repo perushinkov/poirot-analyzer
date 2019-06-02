@@ -18,17 +18,10 @@
           </div>
         </div>
       </div>
-      <div *ngIf="persistence.selected == 0 || persistence.selected == 1"
+      <div *ngIf="persistence.selected == 0"
            class="modal-footer centerButton">
-        <div *ngIf="persistence.selected == 0">
+        <div>
           Google Drive component here
-          <!-- TODO: Google Drive login component -->
-          <button class="btn btn-primary">Login</button>
-        </div>
-        <div *ngIf="persistence.selected == 1">
-          Local storage component here
-          <!-- TODO: Browser component to perhaps ask for a local storage quota if needed? -->
-          <button class="btn btn-primary">Request quota</button>
         </div>
       </div>
     </div>
