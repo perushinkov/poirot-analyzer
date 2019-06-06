@@ -9,6 +9,7 @@ import { InitRouteComponent } from './routing/init-route/init-route.component';
 import { LayoutRouteComponent } from './routing/layout-route/layout-route.component';
 import { AboutRouteComponent } from './routing/about-route/about-route.component';
 import { ModalModule } from 'ngx-bootstrap';
+import { LocalForageModule } from 'ngx-localforage';
 
 @NgModule({
   declarations: [
@@ -22,7 +23,8 @@ import { ModalModule } from 'ngx-bootstrap';
   imports: [
     BrowserModule,
     AppRoutingModule,
-    ModalModule.forRoot()
+    ModalModule.forRoot(),
+    LocalForageModule.forRoot()
   ],
   providers: [],
   bootstrap: [AppComponent]
