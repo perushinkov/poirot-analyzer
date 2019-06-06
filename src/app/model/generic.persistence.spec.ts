@@ -2,6 +2,8 @@ import {Persistence} from './generic.persistence';
 import {AbstractFileStorage} from './abstract.file.storage';
 import SpyObj = jasmine.SpyObj;
 import {Serializer} from './serializer.interface';
+import { Observable, of } from 'rxjs';
+import { Mock } from 'protractor/built/driverProviders';
 
 class TestEntity {
   constructor(private _a: number, private _b: number) {}
@@ -19,15 +21,45 @@ class TestEntitySerializer implements Serializer<TestEntity> {
   toStr(entity: TestEntity): string { return entity.a + '/' + entity.b; }
 }
 
+class MockStorage implements AbstractFileStorage {
+  mock = {
+    exists: {value: null, callHistory: []},
+    listPaths: {value: null, callHistory: []},
+    load: {value: null, callHistory: []},
+    save: {value: null, callHistory: []}
+  };
+
+  exists(path: string): Observable<boolean> {
+    return this.mockCall('exists', path);
+  }
+
+  listPaths(): Observable<string[]> {
+    return this.mockCall('listPaths');
+  }
+
+  load(path: string): Observable<string> {
+    return this.mockCall('load', path);
+  }
+
+  save(path: string, content: string): Observable<boolean> {
+    return this.mockCall('save', path, content);
+  }
+  private mockCall(methodName, ...args): Observable<any> {
+    const mockMethod = this.mock[methodName];
+    mockMethod.callHistory.push([...args]);
+    return of(mockMethod.value);
+  }
+}
+
 describe('Persistence', () => {
   let componentUnderTest: Persistence<TestEntity>;
-  let mockStorage: SpyObj<AbstractFileStorage>;
+  let mockStorage: MockStorage;
   let serializer: SpyObj<Serializer<TestEntity>>;
   let actual, expected, storageCallValue;
   let PREFIX;
 
   Given(() => {
-    mockStorage = jasmine.createSpyObj('AbstractFileStorage', ['listPaths', 'load', 'save', 'exists']);
+    mockStorage = new MockStorage();
     serializer = jasmine.createSpyObj('TestEntitySerializer', ['fromStr', 'getIdentifier', 'toStr', 'getPrefix']);
     PREFIX = new TestEntitySerializer().getPrefix();
     serializer.getPrefix.and.returnValue(PREFIX);
@@ -36,12 +68,12 @@ describe('Persistence', () => {
 
   describe('METHOD: listDirectory', () => {
     When(() => {
-      actual = componentUnderTest.listDirectory();
+      componentUnderTest.listDirectory().subscribe(returnValue => actual = returnValue);
     });
 
     describe('Should fail with null, when storage op fails with null', () => {
       Given(() => {
-        mockStorage.listPaths.and.returnValue(null);
+        mockStorage.mock.listPaths.value = null;
       });
       Then(() => {
         expect(actual).toBeNull();
@@ -51,7 +83,7 @@ describe('Persistence', () => {
     describe('Should return only paths that start with required prefix', () => {
       Given(() => {
         storageCallValue = ['potatoes', PREFIX + 'potatoes', 'jolly', PREFIX + 'jolly'];
-        mockStorage.listPaths.and.returnValue(storageCallValue);
+        mockStorage.mock.listPaths.value = storageCallValue;
       });
       Then(() => {
         expected = [PREFIX + 'potatoes', PREFIX + 'jolly'];
@@ -63,7 +95,10 @@ describe('Persistence', () => {
   describe('METHOD: load', () => {
     let entityIdentifiers;
     When(() => {
-      actual = entityIdentifiers.map(identifier => componentUnderTest.load(identifier));
+      actual = [];
+      entityIdentifiers.forEach(identifier =>
+        componentUnderTest.load(identifier)
+          .subscribe(loadedValue => actual.push(loadedValue)));
     });
 
     describe('With invalid identifier should not call fileExists', () => {
@@ -73,7 +108,7 @@ describe('Persistence', () => {
         });
         Then(() => {
           expect(actual).toEqual([null, null]);
-          expect(mockStorage.exists.calls.any()).toBeFalsy();
+          expect(mockStorage.mock.exists.callHistory).toEqual([]);
         });
       });
 
@@ -83,48 +118,37 @@ describe('Persistence', () => {
         });
         Then(() => {
           expect(actual).toEqual([null, null, null, null, null]);
-          expect(mockStorage.exists.calls.count()).toEqual(0);
-        });
-      });
-
-      describe('Should return null, when storage fileExists returns true', () => {
-        Given(() => {
-          mockStorage.exists.and.returnValue(true);
-          entityIdentifiers = ['Dio', 'Mario_123'];
-        });
-        Then(() => {
-          expect(actual).toEqual([null, null]);
-          expect(mockStorage.exists.calls.count()).toEqual(2);
+          expect(mockStorage.mock.exists.callHistory).toEqual([]);
         });
       });
     });
 
-    describe('Should return null, when storage fileExists returns true', () => {
+    describe('Should return null, when storage fileExists returns false', () => {
       Given(() => {
-        mockStorage.exists.and.returnValue(true);
+        mockStorage.mock.exists.value = false;
         entityIdentifiers = ['Dio', 'Mario_123'];
       });
       Then(() => {
         expect(actual).toEqual([null, null]);
-        expect(mockStorage.exists.calls.count()).toEqual(2);
-        expect(mockStorage.load.calls.any()).toBeFalsy();
+        expect(mockStorage.mock.exists.callHistory.length).toEqual(2);
+        expect(mockStorage.mock.load.callHistory.length).toEqual(0);
       });
     });
 
-    describe('When storage fileExists returns false', () => {
+    describe('When storage fileExists returns true', () => {
       Given(() => {
-        mockStorage.exists.and.returnValue(false);
+        mockStorage.mock.exists.value = true;
         entityIdentifiers = ['12_13', '12_13'];
       });
 
       describe('Should return null, if storage load returns null', () => {
         Given(() => {
-          mockStorage.load.and.returnValue(null);
+          mockStorage.mock.load.value = null;
         });
         Then(() => {
           expect(actual).toEqual([null, null]);
-          expect(mockStorage.exists.calls.count()).toEqual(2);
-          expect(mockStorage.load.calls.count()).toEqual(2);
+          expect(mockStorage.mock.exists.callHistory.length).toEqual(2);
+          expect(mockStorage.mock.load.callHistory.length).toEqual(2);
           expect(serializer.fromStr.calls.count()).toEqual(0);
         });
       });
@@ -134,7 +158,7 @@ describe('Persistence', () => {
         Given(() => {
           mockValue = new TestEntity(12, 13);
           mockSerializedValue = new TestEntitySerializer().toStr(mockValue);
-          mockStorage.load.and.returnValue(mockSerializedValue);
+          mockStorage.mock.load.value = mockSerializedValue;
           serializer.fromStr.and.returnValue(mockValue);
         });
         Then(() => {
@@ -145,10 +169,11 @@ describe('Persistence', () => {
           const expectedCallValue = PREFIX + new TestEntitySerializer().getIdentifier(mockValue);
 
           expect(actual).toEqual(expected);
-          expect(mockStorage.exists.calls.count()).toEqual(2);
-          expect(mockStorage.load.calls.count()).toEqual(2);
+          expect(mockStorage.mock.exists.callHistory.length).toEqual(2);
+          expect(mockStorage.mock.load.callHistory.length).toEqual(2);
           expect(serializer.fromStr.calls.count()).toEqual(2);
-          expect(mockStorage.load.calls.mostRecent().args).toEqual([expectedCallValue]);
+          const mockCallHistory = mockStorage.mock.load.callHistory;
+          expect(mockCallHistory[mockCallHistory.length - 1]).toEqual([expectedCallValue]);
         });
       });
     });
@@ -157,8 +182,10 @@ describe('Persistence', () => {
   describe('METHOD: save', () => {
     let testEntities;
     When(() => {
-      actual = testEntities.map(entity => componentUnderTest.save(entity));
-
+      actual = [];
+      testEntities.forEach(
+        entity => componentUnderTest.save(entity).subscribe(value => actual.push(value))
+      );
     });
 
     describe('Given a bad testEntity, expect call to return null', () => {
@@ -178,36 +205,36 @@ describe('Persistence', () => {
 
       describe('Storage exists returns true', () => {
         Given(() => {
-          mockStorage.exists.and.returnValue(true);
+          mockStorage.mock.exists.value = true;
         });
         Then(() => {
           expect(actual).toEqual([false]);
-          expect(mockStorage.exists.calls.count()).toEqual(1);
-          expect(mockStorage.save.calls.count()).toEqual(0);
+          expect(mockStorage.mock.exists.callHistory.length).toEqual(1);
+          expect(mockStorage.mock.save.callHistory.length).toEqual(0);
         });
       });
 
       describe('Storage exists and save return false', () => {
         Given(() => {
-          mockStorage.exists.and.returnValue(false);
-          mockStorage.save.and.returnValue(false);
+          mockStorage.mock.exists.value = false;
+          mockStorage.mock.save.value = false;
         });
         Then(() => {
           expect(actual).toEqual([false]);
-          expect(mockStorage.exists.calls.count()).toEqual(1);
-          expect(mockStorage.save.calls.count()).toEqual(1);
+          expect(mockStorage.mock.exists.callHistory.length).toEqual(1);
+          expect(mockStorage.mock.save.callHistory.length).toEqual(1);
         });
       });
 
       describe('And storage exists returns false, storage save returns true', () => {
         Given(() => {
-          mockStorage.exists.and.returnValue(false);
-          mockStorage.save.and.returnValue(true);
+          mockStorage.mock.exists.value = false;
+          mockStorage.mock.save.value = true;
         });
         Then(() => {
           expect(actual).toEqual([true]);
-          expect(mockStorage.exists.calls.count()).toEqual(1);
-          expect(mockStorage.save.calls.count()).toEqual(1);
+          expect(mockStorage.mock.exists.callHistory.length).toEqual(1);
+          expect(mockStorage.mock.save.callHistory.length).toEqual(1);
         });
       });
     });

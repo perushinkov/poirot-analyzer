@@ -1,10 +1,12 @@
+import { Observable } from 'rxjs';
+
 export abstract class AbstractFileStorage {
   /** False is returned if file already exists, or write error occurs. */
-  abstract save(path: string, content: string): boolean;
-  abstract exists(path: string): boolean;
+  abstract save(path: string, content: string): Observable<boolean>;
+  abstract exists(path: string): Observable<boolean>;
 
   /** null is returned if file doesn't exist, or read error occurs */
-  abstract load(path: string): string;
+  abstract load(path: string): Observable<string>;
 
   /**
    * CONTRACT:
@@ -13,5 +15,5 @@ export abstract class AbstractFileStorage {
    *  - within a larger file storage system these are usually
    *    only the paths the application is given access to
    */
-  abstract listPaths(): string[];
+  abstract listPaths(): Observable<string[]>;
 }
